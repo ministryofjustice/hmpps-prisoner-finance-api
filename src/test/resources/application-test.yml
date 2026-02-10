@@ -12,4 +12,10 @@ springdoc:
   api-docs:
     enabled: true
   swagger-ui:
+  packages-to-scan: uk.gov.justice.digital.hmpps.prisonerfinanceapi
+  packages-to-exclude:
+     - uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients
+
+feature:
+  general-ledger-api:
     enabled: true
