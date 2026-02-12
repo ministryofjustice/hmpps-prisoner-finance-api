@@ -1,5 +1,6 @@
 services:
   hmpps-prisoner-finance-api:
+    image: ghcr.io/ministryofjustice/hmpps-prisoner-finance-api:latest
     build:
       context: .
     networks:
