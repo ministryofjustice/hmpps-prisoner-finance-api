@@ -28,3 +28,9 @@ stop:
 
 stop-clean:
 	docker compose down --remove-orphans --volumes
+
+lint:
+	./gradlew ktlintCheck
+
+format:
+	./gradlew ktlintFormat
