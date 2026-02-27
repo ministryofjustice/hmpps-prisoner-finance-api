@@ -65,7 +65,3 @@ springdoc:
     enabled: false
 hmpps-auth:
   url: ${HMPPS_AUTH_URL}
-
-feature:
-  general-ledger-api:
-    enabled: false
