@@ -10,10 +10,14 @@ import java.time.Duration
 @Configuration
 class WebClientConfiguration(
   @param:Value("\${hmpps-auth.url}") val hmppsAuthBaseUri: String,
+  @param:Value("\${general-ledger-api.url}") private val generalLedgerApiBaseUri: String,
   @param:Value("\${api.health-timeout:2s}") val healthTimeout: Duration,
   @param:Value("\${api.timeout:20s}") val timeout: Duration,
 ) {
   // HMPPS Auth health ping is required if your service calls HMPPS Auth to get a token to call other services
   @Bean
   fun hmppsAuthHealthWebClient(builder: WebClient.Builder): WebClient = builder.healthWebClient(hmppsAuthBaseUri, healthTimeout)
+
+  @Bean
+  fun generalLedgerHealthWebClient(builder: WebClient.Builder): WebClient = builder.healthWebClient(generalLedgerApiBaseUri, healthTimeout)
 }
