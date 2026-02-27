@@ -74,8 +74,8 @@ apiSpecs.forEach { (name, url) ->
     inputSpec.set("$rootDir/openapi-specs/$name.json")
     outputDir.set(layout.buildDirectory.dir("generated/openapi").get().asFile.path)
 
-    modelPackage.set("uk.gov.justice.digital.hmpps.prisonerfinancesyncapi.models.$name")
-    apiPackage.set("uk.gov.justice.digital.hmpps.prisonerfinancesyncapi.clients.$name")
+    modelPackage.set("uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.$name")
+    apiPackage.set("uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.$name")
 
     configOptions.set(
       mapOf(
@@ -90,13 +90,13 @@ apiSpecs.forEach { (name, url) ->
 
     typeMappings.set(
       mapOf(
-        "OffsetDateTime" to "java.time.LocalDateTime",
-        "DateTime" to "java.time.LocalDateTime",
+        "OffsetDateTime" to "java.time.Instant",
+        "DateTime" to "java.time.Instant",
       ),
     )
     importMappings.set(
       mapOf(
-        "java.time.LocalDateTime" to "java.time.LocalDateTime",
+        "java.time.LocalDateTime" to "java.time.Instant",
       ),
     )
 
