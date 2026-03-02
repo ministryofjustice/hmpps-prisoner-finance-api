@@ -32,8 +32,8 @@ abstract class IntegrationTestBase {
     scopes: List<String> = listOf("read"),
   ): (HttpHeaders) -> Unit = jwtAuthHelper.setAuthorisationHeader(username = username, scope = scopes, roles = roles)
 
-  protected fun stubPingWithResponse(status: Int) {
-    hmppsAuth.stubHealthPing(status)
-    generalLedgerApi.stubHealthPing(status)
+  protected fun stubPingWithResponse(statusAuth: Int, statusGeneralLedger: Int) {
+    hmppsAuth.stubHealthPing(statusAuth)
+    generalLedgerApi.stubHealthPing(statusGeneralLedger)
   }
 }
