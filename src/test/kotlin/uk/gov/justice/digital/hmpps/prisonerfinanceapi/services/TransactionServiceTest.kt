@@ -1,67 +1,128 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.InjectMocks
+import org.mockito.Mock
+import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.whenever
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerFinanceTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
+import java.time.Instant
+import java.util.UUID
 
-class TransactionServiceTest() {
+@ExtendWith(MockitoExtension::class)
+class TransactionServiceTest {
 
-  private val transactionService = TransactionService()
+  val serviceTestHelpers = ServiceTestHelpers()
+
+  @Mock private lateinit var generalLedgerApiClient: GeneralLedgerApiClient
+
+  @InjectMocks private lateinit var transactionService: TransactionService
 
   @Nested
   inner class TransformForUI {
 
     @Test
     fun `Should return empty list if given an empty list`() {
-      val emptyList = emptyList<Object>()
-      val transformedList = transactionService.transformForUI(emptyList)
+      val emptyList = emptyList<PrisonerFinanceTransactionResponse>()
+      val transformedList = transactionService.transformForUI(listOf())
       assertThat(transformedList).isEmpty()
     }
 
-    // TO-DO
-    // 1 - Call the GL for transactions for a particular prisoner, response
-    // 2 - Transform the GL response
-    // 3 - Return transformed response
+    val listOfTransactionsByAccount: List<PrisonerTransactionListResponse> = listOf(
+      PrisonerTransactionListResponse(
+        UUID.randomUUID(),
+        description = "DESC",
+        timestamp = Instant.now(),
+        postings = listOf(
+          serviceTestHelpers.createPrisonerPosting(
+            10L,
+            PrisonerPostingListResponse.Type.DR,
+            "CASH",
+            "AB123F33",
+            ParentAccountListResponse.Type.PRISONER,
+          ),
+          serviceTestHelpers.createPrisonerPosting(
+            10L,
+            PrisonerPostingListResponse.Type.CR,
+            "1001:CANT",
+            "LEI",
+            ParentAccountListResponse.Type.PRISON,
+          ),
+        ),
+      ),
+    )
 
-    // GL Transaction for an account response
-    // [
-    //  { 
-    //    ID: '<uuid>',
-    //    description: '<description>',
-    //    timestamp: '<timestamp>'
-    //    postings: [
-    //      {
-    //        ID: '<UUID>'
-    //        Type: '<CR/DR>'
-    //        Amount: <amount>
-    //        SubAccount: {
-    //          ID: '<UUID>'
-    //          Reference: '<sub-account-ref>'
-    //          Account: {
-    //             ID: '<UUID'>
-    //             Reference: '<account-ref>'
-    //             Type: '<Prison/Prisoner>'
-    //          }
-    //        }
-    //      }
-    //    ] 
-    //  },
-    //]
+    @Test
+    fun `should return a list of transactions when given a valid prisoner ID`() {
+      val prisonerId = UUID.randomUUID()
 
-   // {
-    //  date: '2026-02-04', 
-    //  description: 'Advance',
-    //  credit: 5.0,
-    //  debit: 0, 
-    //  location: 'LEI',
-    //  AccountType: 'Spends',
+      val request = serviceTestHelpers.createTransactionsByAccount(
+        listOf(
+          serviceTestHelpers.createPrisonerPosting(
+            10L,
+            PrisonerPostingListResponse.Type.DR,
+            "CASH",
+            "AB123F33",
+            ParentAccountListResponse.Type.PRISONER,
+          ),
+          serviceTestHelpers.createPrisonerPosting(
+            10L,
+            PrisonerPostingListResponse.Type.CR,
+            "1001:CANT",
+            "LEI",
+            ParentAccountListResponse.Type.PRISON,
+          ),
+        ),
+      )
 
+      val expectedResponse = listOf(PrisonerFinanceTransactionResponse(request.timestamp, request.description, 10L, 10L, "LEI", "CASH"))
 
-      @Test
-    fun `should return a transaction when given a valid prisoner ID`(){
-      val prisonerId = "AB1234AA"
+      whenever(generalLedgerApiClient.getListOfTransactionsByAccountId(prisonerId)).thenReturn(listOf(request))
 
+      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId)
 
+      assertEquals(expectedResponse, response)
+    }
+
+    @Test
+    fun `Should return a list of transactions when transaction occurs between prisoner accounts`() {
+      val prisonerId = UUID.randomUUID()
+
+      val request = serviceTestHelpers.createTransactionsByAccount(
+        listOf(
+          serviceTestHelpers.createPrisonerPosting(
+            10L,
+            PrisonerPostingListResponse.Type.DR,
+            "CASH",
+            "AB123F33",
+            ParentAccountListResponse.Type.PRISONER,
+          ),
+          serviceTestHelpers.createPrisonerPosting(
+            10L,
+            PrisonerPostingListResponse.Type.CR,
+            "SAVINGS",
+            "AB123F33",
+            ParentAccountListResponse.Type.PRISONER,
+          ),
+        ),
+      )
+
+      val expectedResponse = listOf(PrisonerFinanceTransactionResponse(request.timestamp, request.description, 10L, 10L, "", "CASH"))
+
+      whenever(generalLedgerApiClient.getListOfTransactionsByAccountId(prisonerId)).thenReturn(listOf(request))
+
+      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId)
+
+      assertEquals(expectedResponse, response)
     }
   }
 }

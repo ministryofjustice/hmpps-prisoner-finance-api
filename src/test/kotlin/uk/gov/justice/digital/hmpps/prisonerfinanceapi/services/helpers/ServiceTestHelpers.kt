@@ -1,3 +1,40 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers
 
-class ServiceTestHelpers
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountListResponse
+import java.time.Instant
+import java.util.UUID
+import kotlin.collections.List
+
+class ServiceTestHelpers {
+
+  fun createTransactionsByAccount(postings: List<PrisonerPostingListResponse>): PrisonerTransactionListResponse = PrisonerTransactionListResponse(
+    UUID.randomUUID(),
+    description = "DESC",
+    timestamp = Instant.now(),
+    postings = postings,
+  )
+
+  fun createPrisonerPosting(amount: Long, postingType: PrisonerPostingListResponse.Type, subAccountRef: String, reference: String, accountType: ParentAccountListResponse.Type) = PrisonerPostingListResponse(
+    UUID.randomUUID(),
+    postingType,
+    amount = amount,
+    createSubAccountListResponse(
+      subAccountRef,
+      reference,
+      accountType,
+    ),
+  )
+
+  fun createSubAccountListResponse(subAccountRef: String, reference: String, type: ParentAccountListResponse.Type) = SubAccountListResponse(
+    UUID.randomUUID(),
+    subAccountRef,
+    ParentAccountListResponse(
+      UUID.randomUUID(),
+      reference,
+      type,
+    ),
+  )
+}
