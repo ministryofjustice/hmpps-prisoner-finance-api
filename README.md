@@ -33,19 +33,30 @@ instance of HMPPS Auth (required if your service calls out to other services usi
 
 The `Dockerfile` relies on the application being built first. Steps to build the docker image:
 1. Build the jar files
-```
+```bash
 ./gradlew clean assemble
 ```
 2. Copy the jar files to the base directory so that the docker build can find them
-```
+```bash
 cp build/libs/*.jar .
 ```
 3. Build the docker image with required arguments
-```
-docker build --build-arg GIT_REF=<21345> --build-arg GIT_BRANCH=<branch-name> --build-arg BUILD_NUMBER=$(date '+%Y-%m-%d') .
+```bash
+docker build --build-arg GIT_REF=21345 --build-arg GIT_BRANCH=bob --build-arg BUILD_NUMBER=$(date '+%Y-%m-%d') .
 ```
 4. Run the docker image, setting the auth url so that it starts up
+```bash
+docker run -e HMPPS_AUTH_URL="https://sign-in-dev.hmpps.service.justice.gov.uk/auth" <sha from step 3>
 ```
+
+## Running the application locally
+
+The application comes with a `local` spring profile that includes default settings for running locally.
+
+There is also a `docker-compose.yml` that can be used to run a local instance in docker and also an
+instance of HMPPS Auth.
+
+```bash
 make serve
 ```
 
@@ -83,21 +94,28 @@ a `dev` active profile in Intellij.
   ```
 - Use the value of `access_token` as a Bearer Token to authenticate when calling the local API endpoints.
 
-will just start a docker instance of HMPPS Auth. The application should then be started with
-a `dev` active profile in Intellij.
+## Generating API Clients & Models
 
+We use OpenAPI Generator to automatically generate the Kotlin client and data models for the General Ledger API.
 
-### Health Checks
-- `/health`: provides information about the application health and its dependencies.
-- `/info`: provides information about the version of deployed application.
+The configuration is in build.gradle.kts under apiSpecs. This creates two tasks:
 
-## Common Kotlin patterns
+`writeGeneralledgerJson`: Downloads the latest API specification from the Dev environment to openapi-specs/generalledger.json.
 
-Many patterns have evolved for HMPPS Kotlin applications. Using these patterns provides consistency across our suite of
-Kotlin microservices and allows you to concentrate on building your business needs rather than reinventing the
-technical approach.
+`buildGeneralledgerApiClient`: Generates the Kotlin data classes (Models) and WebClient interfaces (API) from the local JSON file.
 
-Documentation for these patterns can be found in the [HMPPS tech docs](https://tech-docs.hmpps.service.justice.gov.uk/common-kotlin-patterns/).
-If this documentation is incorrect or needs improving please report to [#ask-prisons-digital-sre](https://moj.enterprise.slack.com/archives/C06MWP0UKDE)
-or [raise a PR](https://github.com/ministryofjustice/hmpps-tech-docs).
+### How to Update
+If the General Ledger API changes:
 
+Download the latest spec:
+
+```sh
+./gradlew writeGeneralledgerJson
+```
+
+Verify & Regenerate: Check the diff in openapi-specs/generalledger.json and run a build to ensure the code compiles.
+
+```sh
+./gradlew clean build
+```
+Commit: Commit the updated .json file. Do not commit the generated code in build/.
