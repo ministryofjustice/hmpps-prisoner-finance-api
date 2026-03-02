@@ -34,3 +34,6 @@ lint:
 
 format:
 	./gradlew ktlintFormat
+
+check:
+	./gradlew check
