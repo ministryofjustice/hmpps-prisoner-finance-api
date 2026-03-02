@@ -9,6 +9,7 @@ generic-service:
 
   env:
     APPLICATIONINSIGHTS_CONFIGURATION_FILE: "applicationinsights.dev.json"
+    GENERAL_LEDGER_API_URL: "https://prisoner-finance-general-ledger-api-preprod.hmpps.service.justice.gov.uk"
     HMPPS_AUTH_URL: "https://sign-in-preprod.hmpps.service.justice.gov.uk/auth"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
