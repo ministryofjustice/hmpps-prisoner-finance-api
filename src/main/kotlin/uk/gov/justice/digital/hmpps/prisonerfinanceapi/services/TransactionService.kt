@@ -12,7 +12,9 @@ import java.util.UUID
 @Service
 class TransactionService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
 
-  private fun transformPrisonToPrisonerPosting(transaction: PrisonerTransactionListResponse): List<PrisonerFinanceTransactionResponse> = listOf(
+  private fun transformPrisonToPrisonerPosting(
+    transaction: PrisonerTransactionListResponse,
+  ): List<PrisonerFinanceTransactionResponse> = listOf(
     PrisonerFinanceTransactionResponse(
       transaction.timestamp,
       transaction.description,
@@ -25,7 +27,9 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
     ),
   )
 
-  private fun transformPrisonerToPrisonerPosting(transaction: PrisonerTransactionListResponse): List<PrisonerFinanceTransactionResponse> = transaction.postings.map { posting ->
+  private fun transformPrisonerToPrisonerPosting(
+    transaction: PrisonerTransactionListResponse,
+  ): List<PrisonerFinanceTransactionResponse> = transaction.postings.map { posting ->
     PrisonerFinanceTransactionResponse(
       transaction.timestamp,
       transaction.description,
@@ -36,7 +40,10 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
     )
   }
 
-  private fun isPrisonerToPrisonerPosting(transaction: PrisonerTransactionListResponse): Boolean = transaction.postings.all { posting -> posting.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
+  private fun isPrisonerToPrisonerPosting(
+    transaction: PrisonerTransactionListResponse,
+  ): Boolean = transaction.postings
+    .all { posting -> posting.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
 
   fun getPrisonerTransactionsByAccountId(accountId: UUID): List<PrisonerFinanceTransactionResponse> {
     val response = generalLedgerApiClient.getListOfTransactionsByAccountId(accountId)
