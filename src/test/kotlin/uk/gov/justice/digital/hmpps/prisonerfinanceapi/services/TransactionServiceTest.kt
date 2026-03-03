@@ -94,7 +94,7 @@ class TransactionServiceTest {
     }
 
     @Test
-    fun `Should return a list of transactions when transaction occurs between prisoner accounts`() {
+    fun `Should return a list of transactions when transactions occur between prisoner accounts`() {
       val prisonerId = UUID.randomUUID()
 
       val request = serviceTestHelpers.createTransactionsByAccount(

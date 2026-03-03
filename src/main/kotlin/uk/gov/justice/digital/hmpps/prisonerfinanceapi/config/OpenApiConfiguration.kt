@@ -9,8 +9,7 @@ import org.springframework.boot.info.BuildProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
-const val ROLE_PRISONER_FINANCE__GENERAL_LEDGER__RO = "ROLE_PRISONER_FINANCE__GENERAL_LEDGER__RO"
-const val ROLE_PRISONER_FINANCE__GENERAL_LEDGER__RW = "ROLE_PRISONER_FINANCE__GENERAL_LEDGER__RW"
+const val ROLE_PRISONER_FINANCE__PROFILE__RO = "ROLE_PRISONER_FINANCE__PROFILE__RO"
 
 @Configuration
 class OpenApiConfiguration(buildProperties: BuildProperties) {

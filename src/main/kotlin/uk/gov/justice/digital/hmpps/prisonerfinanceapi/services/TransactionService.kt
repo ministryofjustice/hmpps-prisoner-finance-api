@@ -18,8 +18,10 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
       it.description,
       it.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.CR }.amount,
       it.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.DR }.amount,
-      it.postings.map { posting -> posting.subAccount.parentAccount }.firstOrNull { parentAccount -> parentAccount.type == ParentAccountListResponse.Type.PRISON }?.reference ?: "",
-      "CASH",
+      it.postings.map { posting -> posting.subAccount.parentAccount }
+        .firstOrNull { parentAccount -> parentAccount.type == ParentAccountListResponse.Type.PRISON }?.reference ?: "",
+      it.postings.map { posting -> posting.subAccount }
+        .first { subAccount -> subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }.subAccountReference,
     )
   }
 
