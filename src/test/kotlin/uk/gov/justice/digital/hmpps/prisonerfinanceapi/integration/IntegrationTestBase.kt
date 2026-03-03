@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
+import com.github.tomakehurst.wiremock.client.WireMock
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -33,10 +34,10 @@ abstract class IntegrationTestBase {
 
   @BeforeEach
   fun initClients() {
+    hmppsAuth.stubGrantToken()
     webTestClient = WebTestClient.bindToServer()
       .baseUrl("http://localhost:$port")
       .build()
-    // integrationTestHelpers.setWebClient(webTestClient)
   }
 
   internal fun setAuthorisation(

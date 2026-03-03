@@ -57,7 +57,8 @@ class GeneralLedgerApiMockServer :
   }
   fun stubGetTransactionList(accountId: UUID, response: List<PrisonerTransactionListResponse>) {
     stubFor(
-      get("/accounts/$accountId/transactions").willReturn(
+      get("/accounts/$accountId/transactions")
+        .willReturn(
         aResponse()
           .withHeader("Content-Type", "application/json")
           .withBody(mapper.writeValueAsString(response))
