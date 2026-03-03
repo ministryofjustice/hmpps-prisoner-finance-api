@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
-import com.github.tomakehurst.wiremock.client.WireMock
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -25,7 +24,6 @@ abstract class IntegrationTestBase {
 
   @LocalServerPort
   private var port: Int = 0
-
 
   protected lateinit var webTestClient: WebTestClient
 

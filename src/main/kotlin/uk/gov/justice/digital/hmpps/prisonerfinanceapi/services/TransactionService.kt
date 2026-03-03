@@ -12,21 +12,41 @@ import java.util.UUID
 @Service
 class TransactionService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
 
-  fun transformForUI(transactionList: List<PrisonerTransactionListResponse>): List<PrisonerFinanceTransactionResponse> = transactionList.map {
+  private fun transformPrisonToPrisonerPosting(transaction: PrisonerTransactionListResponse): List<PrisonerFinanceTransactionResponse> = listOf(
     PrisonerFinanceTransactionResponse(
-      it.timestamp,
-      it.description,
-      it.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.CR }.amount,
-      it.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.DR }.amount,
-      it.postings.map { posting -> posting.subAccount.parentAccount }
-        .firstOrNull { parentAccount -> parentAccount.type == ParentAccountListResponse.Type.PRISON }?.reference ?: "",
-      it.postings.map { posting -> posting.subAccount }
+      transaction.timestamp,
+      transaction.description,
+      transaction.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.CR }.amount,
+      transaction.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.DR }.amount,
+      transaction.postings.map { posting -> posting.subAccount.parentAccount }
+        .first { parentAccount -> parentAccount.type == ParentAccountListResponse.Type.PRISON }.reference,
+      transaction.postings.map { posting -> posting.subAccount }
         .first { subAccount -> subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }.subAccountReference,
+    ),
+  )
+
+  private fun transformPrisonerToPrisonerPosting(transaction: PrisonerTransactionListResponse): List<PrisonerFinanceTransactionResponse> = transaction.postings.map { posting ->
+    PrisonerFinanceTransactionResponse(
+      transaction.timestamp,
+      transaction.description,
+      transaction.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.CR }.amount,
+      transaction.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.DR }.amount,
+      "",
+      posting.subAccount.subAccountReference,
     )
   }
 
+  private fun isPrisonerToPrisonerPosting(transaction: PrisonerTransactionListResponse): Boolean = transaction.postings.all { posting -> posting.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
+
   fun getPrisonerTransactionsByAccountId(accountId: UUID): List<PrisonerFinanceTransactionResponse> {
     val response = generalLedgerApiClient.getListOfTransactionsByAccountId(accountId)
-    return transformForUI(response)
+
+    return response.flatMap {
+      if (isPrisonerToPrisonerPosting(it)) {
+        return@flatMap transformPrisonerToPrisonerPosting(it)
+      } else {
+        return@flatMap transformPrisonToPrisonerPosting(it)
+      }
+    }
   }
 }

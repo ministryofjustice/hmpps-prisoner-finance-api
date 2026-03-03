@@ -59,11 +59,11 @@ class GeneralLedgerApiMockServer :
     stubFor(
       get("/accounts/$accountId/transactions")
         .willReturn(
-        aResponse()
-          .withHeader("Content-Type", "application/json")
-          .withBody(mapper.writeValueAsString(response))
-          .withStatus(200),
-      ),
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(mapper.writeValueAsString(response))
+            .withStatus(200),
+        ),
     )
   }
 }

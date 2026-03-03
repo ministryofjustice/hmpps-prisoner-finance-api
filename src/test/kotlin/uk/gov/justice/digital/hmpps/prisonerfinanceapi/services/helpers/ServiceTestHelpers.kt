@@ -10,10 +10,15 @@ import kotlin.collections.List
 
 class ServiceTestHelpers {
 
-  fun createTransactionsByAccount(postings: List<PrisonerPostingListResponse>): PrisonerTransactionListResponse = PrisonerTransactionListResponse(
-    UUID.randomUUID(),
-    description = "DESC",
-    timestamp = Instant.now(),
+  fun createTransactionListResponse(
+    postings: List<PrisonerPostingListResponse>,
+    description: String = "DESC",
+    timestamp: Instant = Instant.now(),
+    transactionId: UUID = UUID.randomUUID(),
+  ): PrisonerTransactionListResponse = PrisonerTransactionListResponse(
+    transactionId,
+    description = description,
+    timestamp = timestamp,
     postings = postings,
   )
 

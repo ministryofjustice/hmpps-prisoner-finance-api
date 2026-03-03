@@ -14,18 +14,20 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.TAG_PRISONER_FINANCE
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerFinanceTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 
-@Tag(name = "Transaction Controller", description = "Transaction operations")
+@Tag(name = TAG_PRISONER_FINANCE)
 @RestController
 class TransactionController(
   private val transactionService: TransactionService,
 ) {
   @Operation(
     summary = "Get list of transaction for an account",
+    description = "Returns a list of transactions for a given account",
   )
   @ApiResponses(
     value = [
