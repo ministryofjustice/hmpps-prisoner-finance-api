@@ -7,6 +7,11 @@ generic-service:
   ingress:
     host: prisoner-finance-api-dev.hmpps.service.justice.gov.uk
 
+  namespace_secrets:
+    hmpps-prisoner-finance-general-ledger-api-client-creds:
+      GENERAL_LEDGER_API_CLIENT_ID: 'API_CLIENT_ID'
+      GENERAL_LEDGER_API_CLIENT_SECRET: 'API_CLIENT_SECRET'
+
   env:
     APPLICATIONINSIGHTS_CONFIGURATION_FILE: "applicationinsights.dev.json"
     HMPPS_AUTH_URL: "https://sign-in-dev.hmpps.service.justice.gov.uk/auth"
