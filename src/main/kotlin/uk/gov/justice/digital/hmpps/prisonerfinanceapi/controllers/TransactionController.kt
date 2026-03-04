@@ -33,7 +33,7 @@ class TransactionController(
     value = [
       ApiResponse(
         responseCode = "200",
-        description = "Retrieved the account balance",
+        description = "Retrieved the transactions",
         content = [Content(mediaType = "application/json", array = ArraySchema(schema = Schema(implementation = PrisonerFinanceTransactionResponse::class)))],
       ),
       ApiResponse(
