@@ -67,7 +67,6 @@ class GeneralLedgerApiMockServer :
         ),
     )
   }
-
   fun stubGetTransactionThrows500(accountId: UUID) {
     generalLedgerApi.stubFor(
       get("/accounts/$accountId/transactions")
@@ -76,6 +75,17 @@ class GeneralLedgerApiMockServer :
             .withHeader("Content-Type", "application/json")
             .withBody("GL Internal Server Error")
             .withStatus(500),
+        ),
+    )
+  }
+  fun stubGetTransactionThrows404(accountId: UUID) {
+    generalLedgerApi.stubFor(
+      get("/accounts/$accountId/transactions")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody("GL Account not found")
+            .withStatus(404),
         ),
     )
   }
