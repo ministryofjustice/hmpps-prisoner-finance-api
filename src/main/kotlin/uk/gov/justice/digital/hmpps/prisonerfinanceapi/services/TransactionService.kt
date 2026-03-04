@@ -14,29 +14,33 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
 
   private fun transformPrisonToPrisonerPosting(
     transaction: PrisonerTransactionListResponse,
-  ): List<PrisonerFinanceTransactionResponse> = listOf(
-    PrisonerFinanceTransactionResponse(
-      transaction.timestamp,
-      transaction.description,
-      transaction.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.CR }.amount,
-      transaction.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.DR }.amount,
-      transaction.postings.map { posting -> posting.subAccount.parentAccount }
-        .first { parentAccount -> parentAccount.type == ParentAccountListResponse.Type.PRISON }.reference,
-      transaction.postings.map { posting -> posting.subAccount }
-        .first { subAccount -> subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }.subAccountReference,
-    ),
-  )
+  ): List<PrisonerFinanceTransactionResponse> {
+    val prisonerPosting = transaction.postings.first { it.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
+    val isPrisonerDebit = prisonerPosting.type == PrisonerPostingListResponse.Type.DR
+    val prisonPosting = transaction.postings.first { it.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISON }
+
+    return listOf(
+      PrisonerFinanceTransactionResponse(
+        date = transaction.timestamp,
+        description = transaction.description,
+        debit = if (isPrisonerDebit) prisonerPosting.amount else 0,
+        credit = if (!isPrisonerDebit) prisonerPosting.amount else 0,
+        location = prisonPosting.subAccount.parentAccount.reference,
+        accountType = prisonerPosting.subAccount.subAccountReference,
+      ),
+    )
+  }
 
   private fun transformPrisonerToPrisonerPosting(
     transaction: PrisonerTransactionListResponse,
   ): List<PrisonerFinanceTransactionResponse> = transaction.postings.map { posting ->
     PrisonerFinanceTransactionResponse(
-      transaction.timestamp,
-      transaction.description,
-      transaction.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.CR }.amount,
-      transaction.postings.first { postings -> postings.type == PrisonerPostingListResponse.Type.DR }.amount,
-      "",
-      posting.subAccount.subAccountReference,
+      date = transaction.timestamp,
+      description = transaction.description,
+      credit = if (posting.type == PrisonerPostingListResponse.Type.CR) posting.amount else 0,
+      debit = if (posting.type == PrisonerPostingListResponse.Type.DR) posting.amount else 0,
+      location = "",
+      accountType = posting.subAccount.subAccountReference,
     )
   }
 
