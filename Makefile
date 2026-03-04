@@ -37,3 +37,11 @@ format:
 
 check:
 	./gradlew check
+
+unit-test:
+	./gradlew unitTest
+
+integration-test:
+	./gradlew integrationTest --warning-mode all
+
+test: unit-test integration-test
