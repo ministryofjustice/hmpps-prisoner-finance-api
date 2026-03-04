@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
@@ -58,6 +59,24 @@ class PrisonerFinanceApiExceptionHandler {
         developerMessage = e.message,
       ),
     ).also { log.error("Unexpected exception", e) }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+  fun handleMethodArgumentTypeMismatchException(e: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> {
+    val paramName = e.parameter.parameterName
+    val requiredType = e.parameter.parameterType.simpleName
+
+    val userMessage = "Parameter '$paramName' must be of type $requiredType"
+
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST,
+          userMessage = userMessage,
+          developerMessage = e.message,
+        ),
+      ).also { log.info("MethodArgumentTypeMismatchException: {}", e.message) }
+  }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
