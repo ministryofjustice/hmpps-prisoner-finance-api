@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.client
 
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClientResponseException
