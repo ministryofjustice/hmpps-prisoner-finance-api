@@ -18,10 +18,3 @@ springdoc:
 
 general-ledger-api:
   url: http://localhost:8091
-
-spring:
-  flyway:
-    enabled: true
-    locations: classpath:/db/migrations/common
-
-
