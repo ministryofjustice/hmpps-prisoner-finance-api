@@ -153,7 +153,30 @@ configure<KtlintExtension> {
 // ==============================================================================
 
 tasks {
+
+  register<Test>("unitTest") {
+    group = "verification"
+    description = "Runs unit tests excluding integration tests"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["main"].output + configurations["testRuntimeClasspath"] + sourceSets["test"].output
+    filter {
+      excludeTestsMatching("uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration*")
+    }
+  }
+
+  register<Test>("integrationTest") {
+    description = "Runs the integration tests"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["main"].output + configurations["testRuntimeClasspath"] + sourceSets["test"].output
+    filter {
+      includeTestsMatching("uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration*")
+    }
+  }
   withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25
+  }
+
+  testlogger {
+    theme = com.adarshr.gradle.testlogger.theme.ThemeType.MOCHA
   }
 }

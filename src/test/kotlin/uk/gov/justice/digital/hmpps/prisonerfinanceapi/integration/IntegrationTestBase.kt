@@ -1,9 +1,11 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
@@ -20,11 +22,21 @@ import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 @AutoConfigureWebTestClient
 abstract class IntegrationTestBase {
 
-  @Autowired
+  @LocalServerPort
+  private var port: Int = 0
+
   protected lateinit var webTestClient: WebTestClient
 
   @Autowired
   protected lateinit var jwtAuthHelper: JwtAuthorisationHelper
+
+  @BeforeEach
+  fun initClients() {
+    hmppsAuth.stubGrantToken()
+    webTestClient = WebTestClient.bindToServer()
+      .baseUrl("http://localhost:$port")
+      .build()
+  }
 
   internal fun setAuthorisation(
     username: String? = "AUTH_ADM",

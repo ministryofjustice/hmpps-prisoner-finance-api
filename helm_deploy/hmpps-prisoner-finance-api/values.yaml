@@ -9,6 +9,7 @@ generic-service:
     tag: app_version # override at deployment time
     port: 8080
 
+
   ingress:
     enabled: true
     host: app-hostname.local # override per environment
@@ -18,6 +19,7 @@ generic-service:
   env:
     SERVER_PORT: "8080"
     APPLICATIONINSIGHTS_CONFIGURATION_FILE: applicationinsights.json
+    ENV_STRING: "prod"
     # JAVA_TOOL_OPTIONS is set in the base image (hmpps-eclipse-temurin) with:
     #   -XX:MaxRAMPercentage=50.0
     # Uncomment below to override memory settings if needed.
@@ -37,6 +39,11 @@ generic-service:
   namespace_secrets:
     hmpps-prisoner-finance-api-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
+
+    hmpps-prisoner-finance-api-client-creds:
+      GENERAL_LEDGER_API_CLIENT_ID: 'API_CLIENT_ID'
+      GENERAL_LEDGER_API_CLIENT_SECRET: 'API_CLIENT_SECRET'
+
 
   allowlist:
     groups:

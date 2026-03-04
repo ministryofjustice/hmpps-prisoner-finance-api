@@ -74,3 +74,6 @@ sonar-project.properties
 
 #Everything else:
 .DS_Store
+
+applicationinsights-agent-*.jar
+hmpps-prisoner-finance-api-*.jar
