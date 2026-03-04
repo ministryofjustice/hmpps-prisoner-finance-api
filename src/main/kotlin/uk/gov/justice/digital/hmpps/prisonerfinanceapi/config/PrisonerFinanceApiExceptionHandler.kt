@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.resource.NoResourceFoundException
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestControllerAdvice
 class PrisonerFinanceApiExceptionHandler {
+
+  private val envIsProd = System.getenv("ENV_STRING") == "prod"
+
   @ExceptionHandler(ValidationException::class)
   fun handleValidationException(e: ValidationException): ResponseEntity<ErrorResponse> = ResponseEntity
     .status(BAD_REQUEST)
@@ -77,6 +81,17 @@ class PrisonerFinanceApiExceptionHandler {
         ),
       ).also { log.info("MethodArgumentTypeMismatchException: {}", e.message) }
   }
+
+  @ExceptionHandler(CustomException::class)
+  fun handleCustomException(e: CustomException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(e.status)
+    .body(
+      ErrorResponse(
+        status = e.status.value(),
+        userMessage = e.message,
+        developerMessage = if (envIsProd) null else e.cause.message,
+      ),
+    ).also { log.info("CustomExceptionThrown: ${e.cause.message}") }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
