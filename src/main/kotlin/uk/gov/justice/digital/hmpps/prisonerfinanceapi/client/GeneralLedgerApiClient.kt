@@ -24,8 +24,4 @@ class GeneralLedgerApiClient(private val transactionApi: TransactionControllerAp
       }
     }
   }
-
-  private companion object {
-    private val log = LoggerFactory.getLogger(this::class.java)
-  }
 }
