@@ -16,30 +16,30 @@ class ServiceTestHelpers {
     timestamp: Instant = Instant.now(),
     transactionId: UUID = UUID.randomUUID(),
   ): PrisonerTransactionListResponse = PrisonerTransactionListResponse(
-    transactionId,
+    id = transactionId,
     description = description,
     timestamp = timestamp,
     postings = postings,
   )
 
   fun createPosting(amount: Long, postingType: PrisonerPostingListResponse.Type, subAccountRef: String, reference: String, accountType: ParentAccountListResponse.Type) = PrisonerPostingListResponse(
-    UUID.randomUUID(),
-    postingType,
+    id = UUID.randomUUID(),
+    type = postingType,
     amount = amount,
-    createSubAccountListResponse(
-      subAccountRef,
-      reference,
-      accountType,
+    subAccount = createSubAccountListResponse(
+      subAccountRef = subAccountRef,
+      reference = reference,
+      type = accountType,
     ),
   )
 
   fun createSubAccountListResponse(subAccountRef: String, reference: String, type: ParentAccountListResponse.Type) = SubAccountListResponse(
-    UUID.randomUUID(),
-    subAccountRef,
-    ParentAccountListResponse(
-      UUID.randomUUID(),
-      reference,
-      type,
+    id = UUID.randomUUID(),
+    subAccountReference = subAccountRef,
+    parentAccount = ParentAccountListResponse(
+      id = UUID.randomUUID(),
+      reference = reference,
+      type = type,
     ),
   )
 }
