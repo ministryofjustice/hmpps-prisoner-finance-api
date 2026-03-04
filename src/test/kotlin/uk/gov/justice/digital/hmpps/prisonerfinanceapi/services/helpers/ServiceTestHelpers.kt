@@ -22,7 +22,7 @@ class ServiceTestHelpers {
     postings = postings,
   )
 
-  fun createPrisonerPosting(amount: Long, postingType: PrisonerPostingListResponse.Type, subAccountRef: String, reference: String, accountType: ParentAccountListResponse.Type) = PrisonerPostingListResponse(
+  fun createPosting(amount: Long, postingType: PrisonerPostingListResponse.Type, subAccountRef: String, reference: String, accountType: ParentAccountListResponse.Type) = PrisonerPostingListResponse(
     UUID.randomUUID(),
     postingType,
     amount = amount,
