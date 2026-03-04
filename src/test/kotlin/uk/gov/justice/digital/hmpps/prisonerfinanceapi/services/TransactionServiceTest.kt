@@ -26,7 +26,7 @@ class TransactionServiceTest {
   @InjectMocks private lateinit var transactionService: TransactionService
 
   @Nested
-  inner class TransformForUI {
+  inner class GetPrisonerTransactionsByAccountId {
 
     @Test
     fun `Should return empty list if given an empty list`() {
