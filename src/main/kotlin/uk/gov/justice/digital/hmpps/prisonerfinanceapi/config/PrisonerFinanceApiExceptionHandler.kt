@@ -27,7 +27,7 @@ class PrisonerFinanceApiExceptionHandler {
       ErrorResponse(
         status = BAD_REQUEST,
         userMessage = "Validation failure: ${e.message}",
-        developerMessage = e.message,
+        developerMessage = if (envIsProd) null else e.message,
       ),
     ).also { log.info("Validation exception: {}", e.message) }
 
@@ -38,7 +38,7 @@ class PrisonerFinanceApiExceptionHandler {
       ErrorResponse(
         status = NOT_FOUND,
         userMessage = "No resource found failure: ${e.message}",
-        developerMessage = e.message,
+        developerMessage = if (envIsProd) null else e.message,
       ),
     ).also { log.info("No resource found exception: {}", e.message) }
 
@@ -49,7 +49,7 @@ class PrisonerFinanceApiExceptionHandler {
       ErrorResponse(
         status = FORBIDDEN,
         userMessage = "Forbidden: ${e.message}",
-        developerMessage = e.message,
+        developerMessage = if (envIsProd) null else e.message,
       ),
     ).also { log.debug("Forbidden (403) returned: {}", e.message) }
 
@@ -60,7 +60,7 @@ class PrisonerFinanceApiExceptionHandler {
       ErrorResponse(
         status = INTERNAL_SERVER_ERROR,
         userMessage = "Unexpected error: ${e.message}",
-        developerMessage = e.message,
+        developerMessage = if (envIsProd) null else e.message,
       ),
     ).also { log.error("Unexpected exception", e) }
 
@@ -77,7 +77,7 @@ class PrisonerFinanceApiExceptionHandler {
         ErrorResponse(
           status = BAD_REQUEST,
           userMessage = userMessage,
-          developerMessage = e.message,
+          developerMessage = if (envIsProd) null else e.message,
         ),
       ).also { log.info("MethodArgumentTypeMismatchException: {}", e.message) }
   }
