@@ -1,7 +1,5 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
-import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import org.junit.jupiter.api.Test
@@ -213,24 +211,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
   fun `should return 503 when general ledger is down`() {
     val accountId = UUID.randomUUID()
 
-//    generalLedgerApi.stubFor(
-//      WireMock.get(urlPathEqualTo("/accounts/${accountId}/transactions"))
-//        .willReturn(
-//          aResponse()
-//            .withStatus(500)
-//            .withBody("General Ledger is unavailable"),
-//        ),
-//    )
-
-    generalLedgerApi.stubFor(
-      WireMock.get("/accounts/$accountId/transactions")
-        .willReturn(
-          aResponse()
-            .withHeader("Content-Type", "application/json")
-            .withBody("General Ledger is unavailable")
-            .withStatus(500),
-        ),
-    )
+    generalLedgerApi.stubGetTransactionThrows500(accountId)
 
     webTestClient.get()
       .uri("/accounts/$accountId/transactions")

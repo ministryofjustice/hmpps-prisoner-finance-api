@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import java.util.UUID
 
@@ -63,6 +64,18 @@ class GeneralLedgerApiMockServer :
             .withHeader("Content-Type", "application/json")
             .withBody(mapper.writeValueAsString(response))
             .withStatus(200),
+        ),
+    )
+  }
+
+  fun stubGetTransactionThrows500(accountId: UUID) {
+    generalLedgerApi.stubFor(
+      get("/accounts/$accountId/transactions")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody("GL Internal Server Error")
+            .withStatus(500),
         ),
     )
   }
