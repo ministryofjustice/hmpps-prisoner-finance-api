@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.any
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import org.junit.jupiter.api.extension.AfterAllCallback
@@ -12,7 +14,9 @@ import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
+import java.time.Instant
 import java.util.UUID
 
 class GeneralLedgerApiExtension :
@@ -67,9 +71,9 @@ class GeneralLedgerApiMockServer :
         ),
     )
   }
-  fun stubGetTransactionThrows500(accountId: UUID) {
+  fun stubAnyRequestThrows500() {
     generalLedgerApi.stubFor(
-      get("/accounts/$accountId/transactions")
+      any(urlMatching(".*"))
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
@@ -86,6 +90,28 @@ class GeneralLedgerApiMockServer :
             .withHeader("Content-Type", "application/json")
             .withBody("GL Account not found")
             .withStatus(404),
+        ),
+    )
+  }
+  fun stubGetAccountListWithAccount(accountRef: String, accountId: UUID) {
+    generalLedgerApi.stubFor(
+      get("/accounts?reference=$accountRef")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(mapper.writeValueAsString(listOf<AccountResponse>(AccountResponse(id = accountId, reference = accountRef, createdAt = Instant.now(), createdBy = "", type = AccountResponse.Type.PRISONER, subAccounts = emptyList()))))
+            .withStatus(200),
+        ),
+    )
+  }
+  fun stubGetAccountListWithNoAccount(accountRef: String) {
+    generalLedgerApi.stubFor(
+      get("/accounts?reference=$accountRef")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(emptyList<AccountResponse>().toString())
+            .withStatus(200),
         ),
     )
   }
