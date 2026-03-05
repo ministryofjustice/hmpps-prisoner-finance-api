@@ -12,7 +12,7 @@ import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerFinanceTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
 import java.util.UUID
 
@@ -61,7 +61,7 @@ class TransactionServiceTest {
         ),
       )
 
-      val expectedResponse = listOf(PrisonerFinanceTransactionResponse(request.timestamp, request.description, 0L, 10L, "LEI", "CASH"))
+      val expectedResponse = listOf(PrisonerTransactionResponse(request.timestamp, request.description, 0L, 10L, "LEI", "CASH"))
 
       whenever(generalLedgerApiClient.getListOfTransactionsByAccountId(prisonerId)).thenReturn(listOf(request))
 
@@ -94,8 +94,8 @@ class TransactionServiceTest {
       )
 
       val expectedResponse = listOf(
-        PrisonerFinanceTransactionResponse(request.timestamp, request.description, 0L, 10L, "", "CASH"),
-        PrisonerFinanceTransactionResponse(request.timestamp, request.description, 10L, 0L, "", "SAVINGS"),
+        PrisonerTransactionResponse(request.timestamp, request.description, 0L, 10L, "", "CASH"),
+        PrisonerTransactionResponse(request.timestamp, request.description, 10L, 0L, "", "SAVINGS"),
       )
 
       whenever(generalLedgerApiClient.getListOfTransactionsByAccountId(prisonerId)).thenReturn(listOf(request))

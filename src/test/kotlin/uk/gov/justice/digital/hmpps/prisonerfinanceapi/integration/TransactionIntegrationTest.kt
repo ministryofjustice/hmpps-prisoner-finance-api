@@ -13,7 +13,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Gene
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerFinanceTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
 import java.time.Instant
 import java.util.UUID
@@ -33,7 +33,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isOk()
-      .expectBody<List<PrisonerFinanceTransactionResponse>>().returnResult().responseBody!!
+      .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
 
     assertThat(responseBody.size).isEqualTo(0)
 
@@ -72,7 +72,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isOk
-      .expectBody<List<PrisonerFinanceTransactionResponse>>().returnResult().responseBody!!
+      .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
 
     val tx1 = responseBody[0]
     assertThat(tx1.date).isEqualTo(request.timestamp)
@@ -117,7 +117,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isOk
-      .expectBody<List<PrisonerFinanceTransactionResponse>>()
+      .expectBody<List<PrisonerTransactionResponse>>()
       .returnResult().responseBody!!
 
     assertThat(responseBody.size).isEqualTo(2)
@@ -195,7 +195,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isOk
-      .expectBody<List<PrisonerFinanceTransactionResponse>>().returnResult().responseBody!!
+      .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
 
     assertThat(responseBody.size).isEqualTo(3)
 
