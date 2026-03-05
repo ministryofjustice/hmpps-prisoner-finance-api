@@ -6,21 +6,33 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiCl
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerFinanceTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import java.util.UUID
 
 @Service
 class TransactionService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
 
+  fun getPrisonerTransactionsByAccountId(accountId: UUID): List<PrisonerTransactionResponse> {
+    val response = generalLedgerApiClient.getListOfTransactionsByAccountId(accountId)
+
+    return response.flatMap {
+      if (isPrisonerToPrisonerPosting(it)) {
+        return@flatMap transformPrisonerToPrisonerPosting(it)
+      } else {
+        return@flatMap transformPrisonToPrisonerPosting(it)
+      }
+    }
+  }
+
   private fun transformPrisonToPrisonerPosting(
     transaction: PrisonerTransactionListResponse,
-  ): List<PrisonerFinanceTransactionResponse> {
+  ): List<PrisonerTransactionResponse> {
     val prisonerPosting = transaction.postings.first { it.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
     val isPrisonerDebit = prisonerPosting.type == PrisonerPostingListResponse.Type.DR
     val prisonPosting = transaction.postings.first { it.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISON }
 
     return listOf(
-      PrisonerFinanceTransactionResponse(
+      PrisonerTransactionResponse(
         date = transaction.timestamp,
         description = transaction.description,
         debit = if (isPrisonerDebit) prisonerPosting.amount else 0,
@@ -33,8 +45,8 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
 
   private fun transformPrisonerToPrisonerPosting(
     transaction: PrisonerTransactionListResponse,
-  ): List<PrisonerFinanceTransactionResponse> = transaction.postings.map { posting ->
-    PrisonerFinanceTransactionResponse(
+  ): List<PrisonerTransactionResponse> = transaction.postings.map { posting ->
+    PrisonerTransactionResponse(
       date = transaction.timestamp,
       description = transaction.description,
       credit = if (posting.type == PrisonerPostingListResponse.Type.CR) posting.amount else 0,
@@ -48,16 +60,4 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
     transaction: PrisonerTransactionListResponse,
   ): Boolean = transaction.postings
     .all { posting -> posting.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
-
-  fun getPrisonerTransactionsByAccountId(accountId: UUID): List<PrisonerFinanceTransactionResponse> {
-    val response = generalLedgerApiClient.getListOfTransactionsByAccountId(accountId)
-
-    return response.flatMap {
-      if (isPrisonerToPrisonerPosting(it)) {
-        return@flatMap transformPrisonerToPrisonerPosting(it)
-      } else {
-        return@flatMap transformPrisonToPrisonerPosting(it)
-      }
-    }
-  }
 }

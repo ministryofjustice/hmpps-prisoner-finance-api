@@ -1,6 +1,8 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.matching
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -13,7 +15,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Gene
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerFinanceTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
 import java.time.Instant
 import java.util.UUID
@@ -24,25 +26,42 @@ class TransactionIntegrationTest : IntegrationTestBase() {
   val serviceTestHelpers = ServiceTestHelpers()
 
   @Test
-  fun `return a empty list of transactions when sent a valid account ID with no transactions`() {
+  fun `return a empty list of transactions when sent a valid account reference with no transactions`() {
+    val accountRef = "A12345"
     val accountId = UUID.randomUUID()
-    generalLedgerApi.stubGetTransactionList(accountId, listOf())
+
+    generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
+
+    generalLedgerApi.stubGetTransactionList(accountId, emptyList())
 
     val responseBody = webTestClient.get()
-      .uri("/accounts/$accountId/transactions")
+      .uri("/prisoners/$accountRef/money/transactions")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isOk()
-      .expectBody<List<PrisonerFinanceTransactionResponse>>().returnResult().responseBody!!
+      .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
 
     assertThat(responseBody.size).isEqualTo(0)
 
-    generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")))
+    generalLedgerApi.verify(
+      1,
+      getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")),
+    )
+    generalLedgerApi.verify(
+      1,
+      getRequestedFor(urlPathEqualTo("/accounts"))
+        .withQueryParam("reference", matching(accountRef)),
+    )
   }
 
   @Test
-  fun `return a list of prison to prisoner transactions when sent a valid account ID`() {
+  fun `return a list of prison to prisoner transactions when sent a valid account reference`() {
+    // TO-DO, update stub to take ref and id, call stub
+
     val accountId = UUID.randomUUID()
+    val accountRef = "AE123456"
+
+    generalLedgerApi.stubGetAccountListWithAccount(accountRef = accountRef, accountId = accountId)
 
     val request = serviceTestHelpers.createTransactionListResponse(
       timestamp = Instant.now(),
@@ -68,11 +87,11 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     generalLedgerApi.stubGetTransactionList(accountId, listOf(request))
 
     val responseBody = webTestClient.get()
-      .uri("/accounts/$accountId/transactions")
+      .uri("/prisoners/$accountRef/money/transactions")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isOk
-      .expectBody<List<PrisonerFinanceTransactionResponse>>().returnResult().responseBody!!
+      .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
 
     val tx1 = responseBody[0]
     assertThat(tx1.date).isEqualTo(request.timestamp)
@@ -82,12 +101,24 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     assertThat(tx1.location).isEqualTo("LEI")
     assertThat(tx1.accountType).isEqualTo("CASH")
 
-    generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")))
+    generalLedgerApi.verify(
+      1,
+      getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")),
+    )
+    generalLedgerApi.verify(
+      1,
+      getRequestedFor(urlPathEqualTo("/accounts"))
+        .withQueryParam("reference", matching(accountRef)),
+    )
   }
 
   @Test
-  fun `return a list of prisoner to prisoner transactions when sent a valid account ID`() {
+  fun `return a list of prisoner to prisoner transactions when sent a valid account reference`() {
     val accountId = UUID.randomUUID()
+
+    val accountRef = "AE123456"
+
+    generalLedgerApi.stubGetAccountListWithAccount(accountRef = accountRef, accountId = accountId)
 
     val request = serviceTestHelpers.createTransactionListResponse(
       timestamp = Instant.now(),
@@ -113,11 +144,11 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     generalLedgerApi.stubGetTransactionList(accountId, listOf(request))
 
     val responseBody = webTestClient.get()
-      .uri("/accounts/$accountId/transactions")
+      .uri("/prisoners/$accountRef/money/transactions")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isOk
-      .expectBody<List<PrisonerFinanceTransactionResponse>>()
+      .expectBody<List<PrisonerTransactionResponse>>()
       .returnResult().responseBody!!
 
     assertThat(responseBody.size).isEqualTo(2)
@@ -139,11 +170,20 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     assertThat(tx2.accountType).isEqualTo("SAVINGS")
 
     generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")))
+
+    generalLedgerApi.verify(
+      1,
+      getRequestedFor(urlPathEqualTo("/accounts"))
+        .withQueryParam("reference", matching(accountRef)),
+    )
   }
 
   @Test
-  fun `return a list of multiple transactions when sent a valid account ID`() {
+  fun `return a list of multiple transactions when sent a valid account reference`() {
     val accountId = UUID.randomUUID()
+    val accountRef = "AE123456"
+
+    generalLedgerApi.stubGetAccountListWithAccount(accountRef = accountRef, accountId = accountId)
 
     val requestOne = serviceTestHelpers.createTransactionListResponse(
       timestamp = Instant.now(),
@@ -191,11 +231,11 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     generalLedgerApi.stubGetTransactionList(accountId, listOf(requestTwo, requestOne))
 
     val responseBody = webTestClient.get()
-      .uri("/accounts/$accountId/transactions")
+      .uri("/prisoners/$accountRef/money/transactions")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isOk
-      .expectBody<List<PrisonerFinanceTransactionResponse>>().returnResult().responseBody!!
+      .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
 
     assertThat(responseBody.size).isEqualTo(3)
 
@@ -224,36 +264,33 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     assertThat(tx3.accountType).isEqualTo("CASH")
 
     generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")))
-  }
 
-  @Test
-  fun `Get list of transactions should return 400 Bad Request when account ID is invalid`() {
-    val accountId = "SAMPLE"
-    webTestClient
-      .get()
-      .uri("/accounts/$accountId/transactions")
-      .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
-      .exchange()
-      .expectStatus().isBadRequest
+    generalLedgerApi.verify(
+      1,
+      getRequestedFor(urlPathEqualTo("/accounts"))
+        .withQueryParam("reference", matching(accountRef)),
+    )
   }
 
   @Test
   fun `should return 403 Forbidden when role is incorrect`() {
-    val accountId = UUID.randomUUID()
+    val accountRef = "AF123F33"
 
     webTestClient.get()
-      .uri("/accounts/$accountId/transactions")
+      .uri("/prisoners/$accountRef/money/transactions")
       .headers(setAuthorisation(roles = listOf("WRONG_ROLE")))
       .exchange()
       .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
   }
 
   @Test
-  fun `should return 404 when account ID does not exist`() {
-    val accountId = UUID.randomUUID()
-    generalLedgerApi.stubGetTransactionThrows404(accountId)
+  fun `should return 404 when account reference does not exist`() {
+    val accountRef = "AS12345"
+
+    generalLedgerApi.stubGetAccountListWithNoAccount(accountRef)
+
     webTestClient.get()
-      .uri("/accounts/$accountId/transactions")
+      .uri("/prisoners/$accountRef/money/transactions")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
@@ -261,12 +298,11 @@ class TransactionIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `should return 503 when general ledger is down`() {
-    val accountId = UUID.randomUUID()
-
-    generalLedgerApi.stubGetTransactionThrows500(accountId)
+    val accountRef = "AS12345"
+    generalLedgerApi.stubAnyRequestThrows500()
 
     webTestClient.get()
-      .uri("/accounts/$accountId/transactions")
+      .uri("/prisoners/$accountRef/money/transactions")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
       .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
