@@ -21,7 +21,7 @@ import java.time.Instant
 import java.util.UUID
 
 @ExtendWith(HmppsAuthApiExtension::class, GeneralLedgerApiExtension::class)
-class TransactionIntegrationTest : IntegrationTestBase() {
+class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
   val serviceTestHelpers = ServiceTestHelpers()
 

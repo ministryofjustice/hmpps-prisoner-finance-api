@@ -23,13 +23,13 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @Tag(name = "Prisoner money controller")
 @RestController
-class TransactionController(
+class PrisonerMoneyController(
   private val transactionService: TransactionService,
   private val accountService: AccountService,
 ) {
   @Operation(
-    summary = "Get list of transaction for an account",
-    description = "Returns a list of transactions for a given account",
+    summary = "Get list of transactions for a prisoner",
+    description = "Returns a list of transactions for a given prisoner number",
   )
   @ApiResponses(
     value = [
@@ -37,11 +37,6 @@ class TransactionController(
         responseCode = "200",
         description = "Retrieved the transactions",
         content = [Content(mediaType = "application/json", array = ArraySchema(schema = Schema(implementation = PrisonerTransactionResponse::class)))],
-      ),
-      ApiResponse(
-        responseCode = "400",
-        description = "Bad Request - Invalid UUID for accountId",
-        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -55,7 +50,7 @@ class TransactionController(
       ),
       ApiResponse(
         responseCode = "404",
-        description = "Resource not found",
+        description = "Account not found",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
