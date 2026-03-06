@@ -12,6 +12,18 @@ import java.util.UUID
 @Service
 class TransactionService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
 
+  fun getPrisonerTransactionsByAccountId(accountId: UUID): List<PrisonerTransactionResponse> {
+    val response = generalLedgerApiClient.getListOfTransactionsByAccountId(accountId)
+
+    return response.flatMap {
+      if (isPrisonerToPrisonerPosting(it)) {
+        return@flatMap transformPrisonerToPrisonerPosting(it)
+      } else {
+        return@flatMap transformPrisonToPrisonerPosting(it)
+      }
+    }
+  }
+
   private fun transformPrisonToPrisonerPosting(
     transaction: PrisonerTransactionListResponse,
   ): List<PrisonerTransactionResponse> {
@@ -48,16 +60,4 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
     transaction: PrisonerTransactionListResponse,
   ): Boolean = transaction.postings
     .all { posting -> posting.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
-
-  fun getPrisonerTransactionsByAccountId(accountId: UUID): List<PrisonerTransactionResponse> {
-    val response = generalLedgerApiClient.getListOfTransactionsByAccountId(accountId)
-
-    return response.flatMap {
-      if (isPrisonerToPrisonerPosting(it)) {
-        return@flatMap transformPrisonerToPrisonerPosting(it)
-      } else {
-        return@flatMap transformPrisonToPrisonerPosting(it)
-      }
-    }
-  }
 }

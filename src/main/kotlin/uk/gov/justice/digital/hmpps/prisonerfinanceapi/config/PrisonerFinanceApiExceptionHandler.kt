@@ -89,9 +89,9 @@ class PrisonerFinanceApiExceptionHandler {
       ErrorResponse(
         status = e.status.value(),
         userMessage = e.message,
-        developerMessage = if (envIsProd) null else e.cause.message,
+        developerMessage = if (envIsProd) null else e.cause?.message,
       ),
-    ).also { log.info("CustomExceptionThrown: ${e.cause.message}") }
+    ).also { log.info("CustomExceptionThrown: ${e.cause?.message}") }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)

@@ -8,26 +8,28 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.TAG_PRISONER_FINANCE
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.util.UUID
 
-@Tag(name = TAG_PRISONER_FINANCE)
+@Tag(name = "Prisoner money controller")
 @RestController
-class TransactionController(
+class PrisonerMoneyController(
   private val transactionService: TransactionService,
+  private val accountService: AccountService,
 ) {
   @Operation(
-    summary = "Get list of transaction for an account",
-    description = "Returns a list of transactions for a given account",
+    summary = "Get list of transactions for a prisoner",
+    description = "Returns a list of transactions for a given prisoner number",
   )
   @ApiResponses(
     value = [
@@ -35,11 +37,6 @@ class TransactionController(
         responseCode = "200",
         description = "Retrieved the transactions",
         content = [Content(mediaType = "application/json", array = ArraySchema(schema = Schema(implementation = PrisonerTransactionResponse::class)))],
-      ),
-      ApiResponse(
-        responseCode = "400",
-        description = "Bad Request - Invalid UUID for accountId",
-        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -53,7 +50,7 @@ class TransactionController(
       ),
       ApiResponse(
         responseCode = "404",
-        description = "Resource not found",
+        description = "Account not found",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
@@ -70,9 +67,14 @@ class TransactionController(
   )
   @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RO])
   @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RO')")
-  @GetMapping("/accounts/{accountId}/transactions")
-  fun getListOfTransactionsByAccountId(@PathVariable accountId: UUID): ResponseEntity<List<PrisonerTransactionResponse>> {
-    val transactions = transactionService.getPrisonerTransactionsByAccountId(accountId)
+  @GetMapping("/prisoners/{prisonNumber}/money/transactions")
+  fun getListOfTransactionsForPrisonNumber(@PathVariable prisonNumber: String): ResponseEntity<List<PrisonerTransactionResponse>> {
+    val account = accountService.getAccountByReference(prisonNumber)
+
+    if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
+
+    val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id)
+
     return ResponseEntity.ok(transactions)
   }
 }
