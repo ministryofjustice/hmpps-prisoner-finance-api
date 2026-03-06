@@ -56,7 +56,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `return a list of prison to prisoner transactions when sent a valid account reference`() {
-
     val accountId = UUID.randomUUID()
     val accountRef = "AE123456"
 
