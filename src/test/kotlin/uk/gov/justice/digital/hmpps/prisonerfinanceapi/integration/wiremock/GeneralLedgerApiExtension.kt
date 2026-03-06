@@ -110,7 +110,7 @@ class GeneralLedgerApiMockServer :
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
-            .withBody(emptyList<AccountResponse>().toString())
+            .withBody(mapper.writeValueAsString(emptyList<AccountResponse>()))
             .withStatus(200),
         ),
     )

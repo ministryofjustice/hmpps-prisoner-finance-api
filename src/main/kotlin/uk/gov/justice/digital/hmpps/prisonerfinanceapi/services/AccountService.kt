@@ -8,7 +8,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Acco
 @Service
 class AccountService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
   fun getAccountByReference(prisonerNumber: String): AccountResponse? {
-    val accountList = generalLedgerApiClient.getAccountByRef(prisonerNumber)
-    return if (accountList.isNotEmpty()) accountList[0] else null
+    return generalLedgerApiClient.getAccountByRef(prisonerNumber).firstOrNull()
   }
 }

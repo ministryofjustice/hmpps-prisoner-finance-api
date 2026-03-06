@@ -19,7 +19,7 @@ class GeneralLedgerApiClient(private val transactionApi: TransactionControllerAp
         ?: throw IllegalStateException("Received null response when retrieving account by reference $prisonerNumber")
     } catch (e: WebClientResponseException) {
       if (e.statusCode == HttpStatus.INTERNAL_SERVER_ERROR) {
-        throw CustomException("General Ledger Unavailable", HttpStatus.SERVICE_UNAVAILABLE, e)
+        throw CustomException("General Ledger Unavailable", HttpStatus.BAD_GATEWAY, e)
       } else {
         throw CustomException("Unexpected error retrieving transactions", HttpStatus.INTERNAL_SERVER_ERROR, e)
       }

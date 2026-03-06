@@ -56,7 +56,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `return a list of prison to prisoner transactions when sent a valid account reference`() {
-    // TO-DO, update stub to take ref and id, call stub
 
     val accountId = UUID.randomUUID()
     val accountRef = "AE123456"
@@ -297,7 +296,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return 503 when general ledger is down`() {
+  fun `should return 502 when general ledger is down`() {
     val accountRef = "AS12345"
     generalLedgerApi.stubAnyRequestThrows500()
 
@@ -305,6 +304,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       .uri("/prisoners/$accountRef/money/transactions")
       .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
       .exchange()
-      .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
+      .expectStatus().isEqualTo(HttpStatus.BAD_GATEWAY)
   }
 }
