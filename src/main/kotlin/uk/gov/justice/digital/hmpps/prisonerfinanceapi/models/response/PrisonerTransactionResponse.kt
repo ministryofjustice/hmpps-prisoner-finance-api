@@ -6,7 +6,7 @@ import java.time.Instant
 data class PrisonerTransactionResponse(
   @field:Schema(description = "Timestamp of the transaction")
   val date: Instant,
-  @field:Schema(description = "Description the transaction")
+  @field:Schema(description = "Description of the transaction")
   val description: String,
   @field:Schema(description = "Amount credited to the account")
   val credit: Long,
