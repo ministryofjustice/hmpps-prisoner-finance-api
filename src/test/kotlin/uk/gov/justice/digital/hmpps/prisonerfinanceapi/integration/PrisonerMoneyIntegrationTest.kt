@@ -51,7 +51,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       assertThat(responseBody.amount).isEqualTo(amount)
     }
 
-
     @Test
     fun `should return 401 when not authorized`() {
       val accountRef = "AF123F33"
@@ -60,7 +59,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .exchange()
         .expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED)
     }
-
 
     @Test
     fun `should return 403 Forbidden when role is incorrect`() {
@@ -73,7 +71,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
     }
 
-
     @Test
     fun `should return 404 when account reference does not exist`() {
       val accountRef = "AS12345"
@@ -85,7 +82,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .exchange()
         .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
     }
-
 
     @Test
     fun `should return 502 when general ledger is down`() {
@@ -379,7 +375,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .exchange()
         .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
     }
-
 
     @Test
     fun `should return 502 when general ledger is down`() {
