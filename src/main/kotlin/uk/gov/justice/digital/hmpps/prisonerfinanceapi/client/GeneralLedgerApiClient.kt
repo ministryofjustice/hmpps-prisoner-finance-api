@@ -5,14 +5,20 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.AccountControllerApi
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.SubAccountControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.TransactionControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import java.util.UUID
 
 @Component
-class GeneralLedgerApiClient(private val transactionApi: TransactionControllerApi, private val accountApi: AccountControllerApi) {
+class GeneralLedgerApiClient(
+  private val transactionApi: TransactionControllerApi,
+  private val accountApi: AccountControllerApi,
+  private val subAccountApi: SubAccountControllerApi,
+) {
 
   private fun <T> handleExceptions(
     block: () -> T,
@@ -36,7 +42,14 @@ class GeneralLedgerApiClient(private val transactionApi: TransactionControllerAp
   fun getAccountBalance(accountUUID: UUID): AccountBalanceResponse = handleExceptions(
     {
       accountApi.getAccountBalance(accountUUID).block()
-        ?: throw IllegalStateException("Received null response when retrieving balance by accountId $accountUUID")
+        ?: throw IllegalStateException("Received null response when retrieving balance by accountId: $accountUUID")
+    },
+  )
+
+  fun getSubAccountBalance(accountUUID: UUID): SubAccountBalanceResponse = handleExceptions(
+    {
+      subAccountApi.getSubAccountBalance(accountUUID).block()
+        ?: throw IllegalStateException("Received null response when retrieving sub account balance by accountId: $accountUUID")
     },
   )
 

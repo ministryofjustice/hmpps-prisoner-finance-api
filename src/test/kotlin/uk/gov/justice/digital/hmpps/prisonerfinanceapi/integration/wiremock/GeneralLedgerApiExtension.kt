@@ -17,6 +17,8 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Gene
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import java.time.Instant
 import java.util.UUID
 
@@ -94,7 +96,7 @@ class GeneralLedgerApiMockServer :
         ),
     )
   }
-  fun stubGetAccountListWithAccount(accountRef: String, returnAccountId: UUID) {
+  fun stubGetAccountListWithAccount(accountRef: String, returnAccountId: UUID, subAccounts: List<SubAccountResponse> = emptyList()) {
     generalLedgerApi.stubFor(
       get("/accounts?reference=$accountRef")
         .willReturn(
@@ -109,7 +111,7 @@ class GeneralLedgerApiMockServer :
                     createdAt = Instant.now(),
                     createdBy = "",
                     type = AccountResponse.Type.PRISONER,
-                    subAccounts = emptyList(),
+                    subAccounts = subAccounts,
                   ),
                 ),
               ),
@@ -141,6 +143,26 @@ class GeneralLedgerApiMockServer :
               mapper.writeValueAsString(
                 AccountBalanceResponse(
                   accountId = accountId,
+                  balanceDateTime = Instant.now(),
+                  amount = balanceAmount,
+                ),
+              ),
+            )
+            .withStatus(200),
+        ),
+    )
+  }
+
+  fun stubGetSubAccountBalance(subAccountId: UUID, balanceAmount: Long) {
+    generalLedgerApi.stubFor(
+      get("/sub-accounts/$subAccountId/balance")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              mapper.writeValueAsString(
+                SubAccountBalanceResponse(
+                  subAccountId = subAccountId,
                   balanceDateTime = Instant.now(),
                   amount = balanceAmount,
                 ),
