@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import java.util.UUID
 
 @Service
@@ -12,4 +13,6 @@ class AccountService(@Autowired private val generalLedgerApiClient: GeneralLedge
   fun getAccountByReference(prisonerNumber: String): AccountResponse? = generalLedgerApiClient.getAccountByRef(prisonerNumber).firstOrNull()
 
   fun getAccountBalance(accountUUID: UUID): AccountBalanceResponse = generalLedgerApiClient.getAccountBalance(accountUUID)
+
+  fun getSubAccountBalance(accountUUID: UUID): SubAccountBalanceResponse = generalLedgerApiClient.getSubAccountBalance(accountUUID)
 }

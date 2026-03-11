@@ -17,6 +17,8 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Hmpp
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
 import java.time.Instant
@@ -26,6 +28,114 @@ import java.util.UUID
 class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
   val serviceTestHelpers = ServiceTestHelpers()
+
+  @Nested
+  inner class PrisonerSubAccountBalance {
+    @Test
+    fun `should return 200 and sub account balance when sent a valid account reference`() {
+      val accountId = UUID.randomUUID()
+      val subAccountId = UUID.randomUUID()
+      val accountRef = "AE123456"
+      val subAccountRef = "CASH"
+      val amount = 1000L
+
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = accountRef,
+        returnAccountId = accountId,
+        subAccounts = listOf(
+          SubAccountResponse(
+            id = subAccountId,
+            reference = subAccountRef,
+            parentAccountId = accountId,
+            createdBy = "TEST_USER",
+            createdAt = Instant.now(),
+          ),
+        ),
+      )
+      generalLedgerApi.stubGetSubAccountBalance(subAccountId = subAccountId, balanceAmount = amount)
+
+      val responseBody = webTestClient.get()
+        .uri("/prisoners/$accountRef/money/balance/$subAccountRef")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isOk
+        .expectBody<SubAccountBalanceResponse>()
+        .returnResult().responseBody!!
+
+      assertThat(responseBody.subAccountId).isEqualTo(subAccountId)
+      assertThat(responseBody.balanceDateTime).isInThePast()
+      assertThat(responseBody.amount).isEqualTo(amount)
+    }
+
+    @Test
+    fun `should return 401 when not authorized`() {
+      val accountRef = "AF123F33"
+      val subAccountRef = "CASH"
+
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/balance/$subAccountRef")
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `should return 403 Forbidden when role is incorrect`() {
+      val accountRef = "AF123F33"
+      val subAccountRef = "CASH"
+
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/balance/$subAccountRef")
+        .headers(setAuthorisation(roles = listOf("WRONG_ROLE")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+    }
+
+    @Test
+    fun `should return 404 when sub account reference does not exist`() {
+      val accountRef = "AS12345"
+      val subAccountRef = "CASH"
+      val accountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = accountRef,
+        returnAccountId = accountId,
+      )
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/balance/$subAccountRef")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
+        .expectBody().jsonPath("$.userMessage").isEqualTo("Sub account not found")
+    }
+
+    @Test
+    fun `should return 404 when parent account reference does not exist`() {
+      val accountRef = "AS12345"
+      val subAccountRef = "CASH"
+
+      generalLedgerApi.stubGetAccountListWithNoAccount(accountRef)
+
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/balance/$subAccountRef")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
+        .expectBody().jsonPath("$.userMessage").isEqualTo("Account not found")
+    }
+
+    @Test
+    fun `should return 502 when general ledger is down`() {
+      val accountRef = "AS12345"
+      val subAccountRef = "CASH"
+      generalLedgerApi.stubAnyRequestThrows500()
+
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/balance/$subAccountRef")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.BAD_GATEWAY)
+    }
+  }
 
   @Nested
   inner class PrisonerAccountBalance {
@@ -81,6 +191,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
+        .expectBody().jsonPath("$.userMessage").isEqualTo("Account not found")
     }
 
     @Test
