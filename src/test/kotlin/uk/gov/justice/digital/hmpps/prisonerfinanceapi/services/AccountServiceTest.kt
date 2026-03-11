@@ -16,13 +16,12 @@ import java.util.UUID
 @ExtendWith(MockitoExtension::class)
 class AccountServiceTest {
 
+  @Mock private lateinit var generalLedgerApiClient: GeneralLedgerApiClient
+
+  @InjectMocks private lateinit var accountService: AccountService
+
   @Nested
   inner class GetAccountByRef {
-
-    @Mock private lateinit var generalLedgerApiClient: GeneralLedgerApiClient
-
-    @InjectMocks private lateinit var accountService: AccountService
-
     @Test
     fun `If account has no reference should return exception error`() {
       val prisonNumber = "A1234AA"
