@@ -61,7 +61,7 @@ class PrisonerMoneyController(
       ),
       ApiResponse(
         responseCode = "502",
-        description = "Service Unavailable - A dependency service is currently unavailable.",
+        description = "Bad Gateway - A dependency service is currently unreachable or throwing an error.",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
@@ -112,7 +112,7 @@ class PrisonerMoneyController(
       ),
       ApiResponse(
         responseCode = "502",
-        description = "Service Unavailable - A dependency service is currently unavailable.",
+        description = "Bad Gateway - A dependency service is currently unreachable or throwing an error.",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],

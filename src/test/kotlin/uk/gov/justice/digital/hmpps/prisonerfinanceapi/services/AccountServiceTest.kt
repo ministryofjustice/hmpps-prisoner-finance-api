@@ -21,14 +21,6 @@ class AccountServiceTest {
   @InjectMocks private lateinit var accountService: AccountService
 
   @Nested
-  inner class GetAccountBalance {
-
-    @Test
-    fun `Should call general ledger api`() {
-    }
-  }
-
-  @Nested
   inner class GetAccountByRef {
     @Test
     fun `If account has no reference should return exception error`() {

@@ -17,7 +17,7 @@ class GeneralLedgerApiClient(private val transactionApi: TransactionControllerAp
   private fun <T> handleExceptions(
     block: () -> T,
     message404: String = "Not found",
-    message502: String = "Bad Gateway - General Ledger Unavailable",
+    message502: String = "Bad Gateway - General Ledger Unreachable or throwing an error",
     message500: String = "Unexpected Error",
   ): T {
     try {
