@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import java.time.Instant
@@ -93,17 +94,31 @@ class GeneralLedgerApiMockServer :
         ),
     )
   }
-  fun stubGetAccountListWithAccount(accountRef: String, accountId: UUID) {
+  fun stubGetAccountListWithAccount(accountRef: String, returnAccountId: UUID) {
     generalLedgerApi.stubFor(
       get("/accounts?reference=$accountRef")
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
-            .withBody(mapper.writeValueAsString(listOf<AccountResponse>(AccountResponse(id = accountId, reference = accountRef, createdAt = Instant.now(), createdBy = "", type = AccountResponse.Type.PRISONER, subAccounts = emptyList()))))
+            .withBody(
+              mapper.writeValueAsString(
+                listOf<AccountResponse>(
+                  AccountResponse(
+                    id = returnAccountId,
+                    reference = accountRef,
+                    createdAt = Instant.now(),
+                    createdBy = "",
+                    type = AccountResponse.Type.PRISONER,
+                    subAccounts = emptyList(),
+                  ),
+                ),
+              ),
+            )
             .withStatus(200),
         ),
     )
   }
+
   fun stubGetAccountListWithNoAccount(accountRef: String) {
     generalLedgerApi.stubFor(
       get("/accounts?reference=$accountRef")
@@ -111,6 +126,26 @@ class GeneralLedgerApiMockServer :
           aResponse()
             .withHeader("Content-Type", "application/json")
             .withBody(mapper.writeValueAsString(emptyList<AccountResponse>()))
+            .withStatus(200),
+        ),
+    )
+  }
+
+  fun stubGetAccountBalance(accountId: UUID, balanceAmount: Long) {
+    generalLedgerApi.stubFor(
+      get("/accounts/$accountId/balance")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              mapper.writeValueAsString(
+                AccountBalanceResponse(
+                  accountId = accountId,
+                  balanceDateTime = Instant.now(),
+                  amount = balanceAmount,
+                ),
+              ),
+            )
             .withStatus(200),
         ),
     )

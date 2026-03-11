@@ -6,6 +6,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.AccountControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.TransactionControllerApi
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import java.util.UUID
@@ -13,31 +14,43 @@ import java.util.UUID
 @Component
 class GeneralLedgerApiClient(private val transactionApi: TransactionControllerApi, private val accountApi: AccountControllerApi) {
 
-  fun getAccountByRef(prisonerNumber: String): List<AccountResponse> {
+  private fun <T> handleExceptions(
+    block: () -> T,
+    message404: String = "Not found",
+    message502: String = "Bad Gateway - General Ledger Unavailable",
+    message500: String = "Unexpected Error",
+  ): T {
     try {
-      return accountApi.getAccounts(prisonerNumber).block()
-        ?: throw IllegalStateException("Received null response when retrieving account by reference $prisonerNumber")
+      return block()
     } catch (e: WebClientResponseException) {
-      if (e.statusCode == HttpStatus.INTERNAL_SERVER_ERROR) {
-        throw CustomException("General Ledger Unavailable", HttpStatus.BAD_GATEWAY, e)
+      if (e.statusCode == HttpStatus.NOT_FOUND) {
+        throw CustomException(message404, HttpStatus.NOT_FOUND, e)
+      } else if (e.statusCode == HttpStatus.INTERNAL_SERVER_ERROR) {
+        throw CustomException(message502, HttpStatus.BAD_GATEWAY, e)
       } else {
-        throw CustomException("Unexpected error retrieving transactions", HttpStatus.INTERNAL_SERVER_ERROR, e)
+        throw CustomException(message500, HttpStatus.INTERNAL_SERVER_ERROR, e)
       }
     }
   }
 
-  fun getListOfTransactionsByAccountId(accountId: UUID): List<PrisonerTransactionListResponse> {
-    try {
-      return transactionApi.getListOfTransactionsByAccountId(accountId).block()
+  fun getAccountBalance(accountUUID: UUID): AccountBalanceResponse = handleExceptions(
+    {
+      accountApi.getAccountBalance(accountUUID).block()
+        ?: throw IllegalStateException("Received null response when retrieving balance by accountId $accountUUID")
+    },
+  )
+
+  fun getAccountByRef(prisonerNumber: String): List<AccountResponse> = handleExceptions(
+    {
+      accountApi.getAccounts(prisonerNumber).block()
+        ?: throw IllegalStateException("Received null response when retrieving account by reference $prisonerNumber")
+    },
+  )
+
+  fun getListOfTransactionsByAccountId(accountId: UUID): List<PrisonerTransactionListResponse> = handleExceptions(
+    {
+      transactionApi.getListOfTransactionsByAccountId(accountId).block()
         ?: throw IllegalStateException("Received null response when retrieving a list of transactions for account $accountId")
-    } catch (e: WebClientResponseException) {
-      if (e.statusCode == HttpStatus.NOT_FOUND) {
-        throw CustomException("Account not found", HttpStatus.NOT_FOUND, e)
-      } else if (e.statusCode == HttpStatus.INTERNAL_SERVER_ERROR) {
-        throw CustomException("General Ledger Unavailable", HttpStatus.SERVICE_UNAVAILABLE, e)
-      } else {
-        throw CustomException("Unexpected error retrieving transactions", HttpStatus.INTERNAL_SERVER_ERROR, e)
-      }
-    }
-  }
+    },
+  )
 }

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
@@ -59,7 +60,7 @@ class PrisonerMoneyController(
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
-        responseCode = "503",
+        responseCode = "502",
         description = "Service Unavailable - A dependency service is currently unavailable.",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
@@ -76,5 +77,58 @@ class PrisonerMoneyController(
     val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id)
 
     return ResponseEntity.ok(transactions)
+  }
+
+  @Operation(
+    summary = "Gets the total balance of a prisoner",
+    description = "Returns the total balance of a prisoner",
+  )
+  @ApiResponses(
+    value = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Retrieved the total prisoner's balance",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = AccountBalanceResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized - requires a valid OAuth2 token",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden - requires an appropriate role",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Account not found",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal Server Error - An unexpected error occurred.",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "502",
+        description = "Service Unavailable - A dependency service is currently unavailable.",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
+  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RO])
+  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RO')")
+  @GetMapping("/prisoners/{prisonNumber}/money/balance")
+  fun getAccountBalance(
+    @PathVariable prisonNumber: String,
+  ): ResponseEntity<AccountBalanceResponse> {
+    val account = accountService.getAccountByReference(prisonNumber)
+
+    if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
+
+    val balance = accountService.getAccountBalance(accountUUID = account.id)
+
+    return ResponseEntity.ok(balance)
   }
 }
