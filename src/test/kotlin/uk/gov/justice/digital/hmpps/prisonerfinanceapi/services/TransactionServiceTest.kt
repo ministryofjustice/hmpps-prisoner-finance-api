@@ -39,7 +39,6 @@ class TransactionServiceTest {
 
     @Test
     fun `Should map prisoner to prisoner postings to UI transactions`() {
-
       val prisonerId = UUID.randomUUID()
 
       val parentAccount = serviceTestHelpers.createParentAccountResponse(

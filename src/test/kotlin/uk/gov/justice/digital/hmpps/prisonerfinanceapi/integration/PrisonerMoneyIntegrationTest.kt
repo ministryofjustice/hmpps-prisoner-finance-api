@@ -5,7 +5,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.matching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -16,8 +15,9 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Gene
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
@@ -209,7 +209,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @Disabled
   inner class PrisonerTransactions {
     @Test
     fun `return a empty list of transactions when sent a valid account reference with no transactions`() {
@@ -218,20 +217,20 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
 
-      generalLedgerApi.stubGetTransactionList(accountId, emptyList())
+      generalLedgerApi.stubGetStatementEntriesList(accountId, emptyList())
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isOk()
-        .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
+        .expectBody<List<StatementEntryResponse>>().returnResult().responseBody!!
 
       assertThat(responseBody.size).isEqualTo(0)
 
       generalLedgerApi.verify(
         1,
-        getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")),
+        getRequestedFor(urlPathMatching("/accounts/$accountId/statement")),
       )
       generalLedgerApi.verify(
         1,
@@ -247,28 +246,36 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       generalLedgerApi.stubGetAccountListWithAccount(accountRef = accountRef, returnAccountId = accountId)
 
-      val request = serviceTestHelpers.createTransactionListResponse(
-        timestamp = Instant.now(),
-        description = "CASH_TO_CANTEEN",
-        postings = listOf(
-          serviceTestHelpers.createPosting(
-            amount = 10L,
-            postingType = PrisonerPostingListResponse.Type.DR,
-            subAccountRef = "CASH",
-            reference = "AB123F33",
-            accountType = ParentAccountResponse.Type.PRISONER,
-          ),
-          serviceTestHelpers.createPosting(
-            amount = 10L,
-            postingType = PrisonerPostingListResponse.Type.CR,
-            subAccountRef = "1001:CANT",
-            reference = "LEI",
-            accountType = ParentAccountResponse.Type.PRISON,
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = "A1234BC",
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+
+      val glResponses = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
           ),
         ),
       )
 
-      generalLedgerApi.stubGetTransactionList(accountId, listOf(request))
+      generalLedgerApi.stubGetStatementEntriesList(accountId, glResponses)
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions")
@@ -278,16 +285,16 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
 
       val tx1 = responseBody[0]
-      assertThat(tx1.date).isEqualTo(request.timestamp)
-      assertThat(tx1.description).isEqualTo("CASH_TO_CANTEEN")
-      assertThat(tx1.credit).isEqualTo(0)
-      assertThat(tx1.debit).isEqualTo(10)
-      assertThat(tx1.location).isEqualTo("LEI")
-      assertThat(tx1.accountType).isEqualTo("CASH")
+      assertThat(tx1.date).isEqualTo(glResponses[0].transactionTimestamp)
+      assertThat(tx1.description).isEqualTo(glResponses[0].description)
+      assertThat(tx1.credit).isEqualTo(2)
+      assertThat(tx1.debit).isEqualTo(0)
+      assertThat(tx1.location).isEqualTo(parentAccountPrison.reference)
+      assertThat(tx1.accountType).isEqualTo(subAccountCashPrisoner.reference)
 
       generalLedgerApi.verify(
         1,
-        getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")),
+        getRequestedFor(urlPathMatching("/accounts/$accountId/statement")),
       )
       generalLedgerApi.verify(
         1,
@@ -300,35 +307,47 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
     fun `return a list of prisoner to prisoner transactions when sent a valid account reference`() {
       val accountId = UUID.randomUUID()
 
-      val accountRef = "AE123456"
+      val parentAccount = serviceTestHelpers.createParentAccountResponse(
+        reference = "A1234BC",
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
 
-      generalLedgerApi.stubGetAccountListWithAccount(accountRef = accountRef, returnAccountId = accountId)
+      val subAccountCash = serviceTestHelpers.createSubAccountWithParentResponse(parentAccount, "CASH")
 
-      val request = serviceTestHelpers.createTransactionListResponse(
-        timestamp = Instant.now(),
-        description = "CASH_TO_SAVINGS",
-        postings = listOf(
-          serviceTestHelpers.createPosting(
-            amount = 10L,
-            postingType = PrisonerPostingListResponse.Type.DR,
-            subAccountRef = "CASH",
-            reference = "AB123F33",
-            accountType = ParentAccountResponse.Type.PRISONER,
+      val subAccountSavings = serviceTestHelpers.createSubAccountWithParentResponse(parentAccount, "SAVINGS")
+
+      val glResponses = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCash,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountSavings,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
           ),
-          serviceTestHelpers.createPosting(
-            amount = 10L,
-            postingType = PrisonerPostingListResponse.Type.CR,
-            subAccountRef = "SAVINGS",
-            reference = "AB123F33",
-            accountType = ParentAccountResponse.Type.PRISONER,
+        ),
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountSavings,
+          postingType = StatementEntryResponse.PostingType.DR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountCash,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.CR,
+            ),
           ),
         ),
       )
 
-      generalLedgerApi.stubGetTransactionList(accountId, listOf(request))
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef = parentAccount.reference, returnAccountId = accountId)
+      generalLedgerApi.stubGetStatementEntriesList(accountId, glResponses)
 
       val responseBody = webTestClient.get()
-        .uri("/prisoners/$accountRef/money/transactions")
+        .uri("/prisoners/${parentAccount.reference}/money/transactions")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isOk
@@ -338,121 +357,27 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       assertThat(responseBody.size).isEqualTo(2)
 
       val tx1 = responseBody[0]
-      assertThat(tx1.date).isEqualTo(request.timestamp)
-      assertThat(tx1.description).isEqualTo(request.description)
-      assertThat(tx1.debit).isEqualTo(10)
-      assertThat(tx1.credit).isEqualTo(0)
+      assertThat(tx1.date).isEqualTo(glResponses[0].transactionTimestamp)
+      assertThat(tx1.description).isEqualTo(glResponses[0].description)
+      assertThat(tx1.credit).isEqualTo(2)
+      assertThat(tx1.debit).isEqualTo(0)
       assertThat(tx1.location).isEqualTo("")
       assertThat(tx1.accountType).isEqualTo("CASH")
 
       val tx2 = responseBody[1]
-      assertThat(tx2.date).isEqualTo(request.timestamp)
-      assertThat(tx2.description).isEqualTo(request.description)
-      assertThat(tx2.debit).isEqualTo(0)
-      assertThat(tx2.credit).isEqualTo(10)
+      assertThat(tx2.date).isEqualTo(glResponses[1].transactionTimestamp)
+      assertThat(tx2.description).isEqualTo(glResponses[1].description)
+      assertThat(tx2.credit).isEqualTo(0)
+      assertThat(tx2.debit).isEqualTo(2)
       assertThat(tx2.location).isEqualTo("")
       assertThat(tx2.accountType).isEqualTo("SAVINGS")
 
-      generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")))
+      generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts/$accountId/statement")))
 
       generalLedgerApi.verify(
         1,
         getRequestedFor(urlPathEqualTo("/accounts"))
-          .withQueryParam("reference", matching(accountRef)),
-      )
-    }
-
-    @Test
-    fun `return a list of multiple transactions when sent a valid account reference`() {
-      val accountId = UUID.randomUUID()
-      val accountRef = "AE123456"
-
-      generalLedgerApi.stubGetAccountListWithAccount(accountRef = accountRef, returnAccountId = accountId)
-
-      val requestOne = serviceTestHelpers.createTransactionListResponse(
-        timestamp = Instant.now(),
-        description = "CASH_TO_CANTEEN",
-        postings = listOf(
-          serviceTestHelpers.createPosting(
-            amount = 10L,
-            postingType = PrisonerPostingListResponse.Type.DR,
-            subAccountRef = "CASH",
-            reference = "AB123F33",
-            accountType = ParentAccountResponse.Type.PRISONER,
-          ),
-          serviceTestHelpers.createPosting(
-            amount = 10L,
-            postingType = PrisonerPostingListResponse.Type.CR,
-            subAccountRef = "1001:CANT",
-            reference = "LEI",
-            accountType = ParentAccountResponse.Type.PRISON,
-          ),
-        ),
-      )
-
-      val requestTwo = serviceTestHelpers.createTransactionListResponse(
-        timestamp = Instant.now(),
-        description = "CASH_TO_SAVINGS",
-        postings = listOf(
-          serviceTestHelpers.createPosting(
-            amount = 10L,
-            postingType = PrisonerPostingListResponse.Type.DR,
-            subAccountRef = "CASH",
-            reference = "AB123F33",
-            accountType = ParentAccountResponse.Type.PRISONER,
-          ),
-          serviceTestHelpers.createPosting(
-            amount = 10L,
-            postingType = PrisonerPostingListResponse.Type.CR,
-            subAccountRef = "SAVINGS",
-            reference = "AB123F33",
-            accountType = ParentAccountResponse.Type.PRISONER,
-          ),
-        ),
-      )
-
-      // Transactions ordered by timestamp descending
-      generalLedgerApi.stubGetTransactionList(accountId, listOf(requestTwo, requestOne))
-
-      val responseBody = webTestClient.get()
-        .uri("/prisoners/$accountRef/money/transactions")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
-        .exchange()
-        .expectStatus().isOk
-        .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
-
-      assertThat(responseBody.size).isEqualTo(3)
-
-      val tx1 = responseBody[0]
-      assertThat(tx1.date).isEqualTo(requestTwo.timestamp)
-      assertThat(tx1.description).isEqualTo("CASH_TO_SAVINGS")
-      assertThat(tx1.credit).isEqualTo(0)
-      assertThat(tx1.debit).isEqualTo(10)
-      assertThat(tx1.location).isEqualTo("")
-      assertThat(tx1.accountType).isEqualTo("CASH")
-
-      val tx2 = responseBody[1]
-      assertThat(tx2.date).isEqualTo(requestTwo.timestamp)
-      assertThat(tx2.description).isEqualTo("CASH_TO_SAVINGS")
-      assertThat(tx2.credit).isEqualTo(10)
-      assertThat(tx2.debit).isEqualTo(0)
-      assertThat(tx2.location).isEqualTo("")
-      assertThat(tx2.accountType).isEqualTo("SAVINGS")
-
-      val tx3 = responseBody[2]
-      assertThat(tx3.date).isEqualTo(requestOne.timestamp)
-      assertThat(tx3.description).isEqualTo("CASH_TO_CANTEEN")
-      assertThat(tx3.credit).isEqualTo(0)
-      assertThat(tx3.debit).isEqualTo(10)
-      assertThat(tx3.location).isEqualTo("LEI")
-      assertThat(tx3.accountType).isEqualTo("CASH")
-
-      generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts/$accountId/transactions")))
-
-      generalLedgerApi.verify(
-        1,
-        getRequestedFor(urlPathEqualTo("/accounts"))
-          .withQueryParam("reference", matching(accountRef)),
+          .withQueryParam("reference", matching(parentAccount.reference)),
       )
     }
 
