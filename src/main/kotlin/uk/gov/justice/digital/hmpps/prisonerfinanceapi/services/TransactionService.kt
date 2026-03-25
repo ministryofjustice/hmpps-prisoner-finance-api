@@ -3,61 +3,43 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import java.util.UUID
 
 @Service
 class TransactionService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
 
-  fun getPrisonerTransactionsByAccountId(accountId: UUID): List<PrisonerTransactionResponse> {
-    val response = generalLedgerApiClient.getListOfTransactionsByAccountId(accountId)
+  fun getPrisonerTransactionsByAccountId(accountId: UUID): List<PrisonerTransactionResponse> =
+    generalLedgerApiClient.getStatementForAccountId(accountId).map { statementEntryResponse ->
+      val (credit, debit) = getCreditAndDebit(statementEntryResponse)
+      return@map PrisonerTransactionResponse(
+        date = statementEntryResponse.transactionTimestamp,
+        description = statementEntryResponse.description,
+        credit = credit,
+        debit = debit,
+        location = getPrisonLocation(statementEntryResponse),
+        accountType = statementEntryResponse.subAccount.reference,
+      )
+  }
 
-    return response.flatMap {
-      if (isPrisonerToPrisonerPosting(it)) {
-        return@flatMap transformPrisonerToPrisonerPosting(it)
-      } else {
-        return@flatMap transformPrisonToPrisonerPosting(it)
-      }
+  private fun getPrisonLocation(statementEntryResponse: StatementEntryResponse) : String {
+    val oppositePostingParent = statementEntryResponse.oppositePostings.first().subAccount.parentAccount
+    if (oppositePostingParent.type == StatementEntryAccountResponse.Type.PRISON) {
+      return oppositePostingParent.reference
+    } else {
+      return ""
     }
   }
 
-  private fun transformPrisonToPrisonerPosting(
-    transaction: PrisonerTransactionListResponse,
-  ): List<PrisonerTransactionResponse> {
-    val prisonerPosting = transaction.postings.first { it.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
-    val isPrisonerDebit = prisonerPosting.type == PrisonerPostingListResponse.Type.DR
-    val prisonPosting = transaction.postings.first { it.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISON }
+  private fun getCreditAndDebit(statementEntryResponse: StatementEntryResponse) : Pair<Long, Long> {
 
-    return listOf(
-      PrisonerTransactionResponse(
-        date = transaction.timestamp,
-        description = transaction.description,
-        debit = if (isPrisonerDebit) prisonerPosting.amount else 0,
-        credit = if (!isPrisonerDebit) prisonerPosting.amount else 0,
-        location = prisonPosting.subAccount.parentAccount.reference,
-        accountType = prisonerPosting.subAccount.subAccountReference,
-      ),
-    )
+    if (statementEntryResponse.postingType == StatementEntryResponse.PostingType.CR) {
+      return Pair(statementEntryResponse.amount, 0)
+    } else {
+      return Pair( 0, statementEntryResponse.amount)
+    }
   }
-
-  private fun transformPrisonerToPrisonerPosting(
-    transaction: PrisonerTransactionListResponse,
-  ): List<PrisonerTransactionResponse> = transaction.postings.map { posting ->
-    PrisonerTransactionResponse(
-      date = transaction.timestamp,
-      description = transaction.description,
-      credit = if (posting.type == PrisonerPostingListResponse.Type.CR) posting.amount else 0,
-      debit = if (posting.type == PrisonerPostingListResponse.Type.DR) posting.amount else 0,
-      location = "",
-      accountType = posting.subAccount.subAccountReference,
-    )
-  }
-
-  private fun isPrisonerToPrisonerPosting(
-    transaction: PrisonerTransactionListResponse,
-  ): Boolean = transaction.postings
-    .all { posting -> posting.subAccount.parentAccount.type == ParentAccountListResponse.Type.PRISONER }
 }

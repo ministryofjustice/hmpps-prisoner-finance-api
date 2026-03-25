@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -10,9 +9,9 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ParentAccountListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
 import java.util.UUID
 
@@ -32,77 +31,117 @@ class TransactionServiceTest {
     fun `Should return empty list if given an empty list`() {
       val prisonerId = UUID.randomUUID()
 
-      whenever(generalLedgerApiClient.getListOfTransactionsByAccountId(prisonerId)).thenReturn(emptyList())
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId)).thenReturn(emptyList())
 
       val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId)
       assertThat(response).isEmpty()
     }
 
     @Test
-    fun `should transform transaction between a prisoner and prison into a single item`() {
+    fun `Should map prisoner to prisoner postings to UI transactions`() {
+
       val prisonerId = UUID.randomUUID()
 
-      val request = serviceTestHelpers.createTransactionListResponse(
-        listOf(
-          serviceTestHelpers.createPosting(
-            10L,
-            PrisonerPostingListResponse.Type.DR,
-            "CASH",
-            "AB123F33",
-            ParentAccountListResponse.Type.PRISONER,
+      val parentAccount = serviceTestHelpers.createParentAccountResponse(
+        reference = "A1234BC",
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val subAccountCash = serviceTestHelpers.createSubAccountWithParentResponse(parentAccount, "CASH")
+
+      val subAccountSavings = serviceTestHelpers.createSubAccountWithParentResponse(parentAccount, "SAVINGS")
+
+      val glResponses = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCash,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountSavings,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
           ),
-          serviceTestHelpers.createPosting(
-            10L,
-            PrisonerPostingListResponse.Type.CR,
-            "1001:CANT",
-            "LEI",
-            ParentAccountListResponse.Type.PRISON,
+        ),
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountSavings,
+          postingType = StatementEntryResponse.PostingType.DR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountCash,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.CR,
+            ),
           ),
         ),
       )
 
-      val expectedResponse = listOf(PrisonerTransactionResponse(request.timestamp, request.description, 0L, 10L, "LEI", "CASH"))
-
-      whenever(generalLedgerApiClient.getListOfTransactionsByAccountId(prisonerId)).thenReturn(listOf(request))
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId)).thenReturn(glResponses)
 
       val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId)
 
-      assertEquals(expectedResponse, response)
+      assertThat(response).hasSize(2)
+      assertThat(response[0].description).isEqualTo(glResponses[0].description)
+      assertThat(response[0].accountType).isEqualTo(glResponses[0].subAccount.reference)
+      assertThat(response[0].location).isEqualTo("")
+      assertThat(response[0].credit).isEqualTo(glResponses[0].amount)
+      assertThat(response[0].debit).isEqualTo(0)
+      assertThat(response[0].date).isEqualTo(glResponses[0].transactionTimestamp)
+
+      assertThat(response[1].description).isEqualTo(glResponses[1].description)
+      assertThat(response[1].accountType).isEqualTo(glResponses[1].subAccount.reference)
+      assertThat(response[1].location).isEqualTo("")
+      assertThat(response[1].credit).isEqualTo(0)
+      assertThat(response[1].debit).isEqualTo(glResponses[1].amount)
+      assertThat(response[1].date).isEqualTo(glResponses[1].transactionTimestamp)
     }
 
     @Test
-    fun `should transform transaction between a prisoner and prisoner into two items`() {
+    fun `Should map prison to prisoner postings to UI transactions`() {
       val prisonerId = UUID.randomUUID()
 
-      val request = serviceTestHelpers.createTransactionListResponse(
-        listOf(
-          serviceTestHelpers.createPosting(
-            10L,
-            PrisonerPostingListResponse.Type.DR,
-            "CASH",
-            "AB123F33",
-            ParentAccountListResponse.Type.PRISONER,
-          ),
-          serviceTestHelpers.createPosting(
-            10L,
-            PrisonerPostingListResponse.Type.CR,
-            "SAVINGS",
-            "AB123F33",
-            ParentAccountListResponse.Type.PRISONER,
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = "A1234BC",
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+
+      val glResponses = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
           ),
         ),
       )
 
-      val expectedResponse = listOf(
-        PrisonerTransactionResponse(request.timestamp, request.description, 0L, 10L, "", "CASH"),
-        PrisonerTransactionResponse(request.timestamp, request.description, 10L, 0L, "", "SAVINGS"),
-      )
-
-      whenever(generalLedgerApiClient.getListOfTransactionsByAccountId(prisonerId)).thenReturn(listOf(request))
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId)).thenReturn(glResponses)
 
       val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId)
 
-      assertEquals(expectedResponse, response)
+      assertThat(response).hasSize(1)
+      assertThat(response[0].description).isEqualTo(glResponses[0].description)
+      assertThat(response[0].accountType).isEqualTo(glResponses[0].subAccount.reference)
+      assertThat(response[0].location).isEqualTo("LEI")
+      assertThat(response[0].credit).isEqualTo(glResponses[0].amount)
+      assertThat(response[0].debit).isEqualTo(0)
+      assertThat(response[0].date).isEqualTo(glResponses[0].transactionTimestamp)
     }
   }
 }

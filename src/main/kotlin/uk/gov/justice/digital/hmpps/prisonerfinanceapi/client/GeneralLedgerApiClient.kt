@@ -5,11 +5,13 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.AccountControllerApi
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.StatementControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.SubAccountControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.TransactionControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import java.util.UUID
 
@@ -18,6 +20,7 @@ class GeneralLedgerApiClient(
   private val transactionApi: TransactionControllerApi,
   private val accountApi: AccountControllerApi,
   private val subAccountApi: SubAccountControllerApi,
+  private val statementControllerApi: StatementControllerApi,
 ) {
 
   private fun <T> handleExceptions(
@@ -64,6 +67,13 @@ class GeneralLedgerApiClient(
     {
       transactionApi.getListOfTransactionsByAccountId(accountId).block()
         ?: throw IllegalStateException("Received null response when retrieving a list of transactions for account $accountId")
+    },
+  )
+
+  fun getStatementForAccountId(accountId: UUID): List<StatementEntryResponse> = handleExceptions(
+    {
+      statementControllerApi.getStatementForAccountId(accountId).block()
+        ?: throw IllegalStateException("Received null response when retrieving a list of statements for account $accountId")
     },
   )
 }
