@@ -5,8 +5,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.any
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import org.junit.jupiter.api.extension.AfterAllCallback
@@ -65,9 +67,18 @@ class GeneralLedgerApiMockServer :
     )
   }
 
-  fun stubGetStatementEntriesList(accountId: UUID, response: List<StatementEntryResponse>) {
+  fun stubGetStatementEntriesList(
+    accountId: UUID,
+    response: List<StatementEntryResponse>,
+    startDate: String = "",
+    endDate: String = "",
+  ) {
     stubFor(
-      get("/accounts/$accountId/statement")
+      get(
+        urlPathEqualTo("/accounts/$accountId/statement"),
+      )
+        .withQueryParam("startDate", equalTo(startDate))
+        .withQueryParam("endDate", equalTo(endDate))
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")

@@ -73,7 +73,7 @@ class GeneralLedgerApiClient(
 
   fun getStatementForAccountId(accountId: UUID, startDate: LocalDate?, endDate: LocalDate?): List<StatementEntryResponse> = handleExceptions(
     {
-      statementControllerApi.getStatementForAccountId(accountId).block()
+      statementControllerApi.getStatementForAccountId(accountId, startDate, endDate).block()
         ?: throw IllegalStateException("Received null response when retrieving a list of statements for account $accountId")
     },
   )

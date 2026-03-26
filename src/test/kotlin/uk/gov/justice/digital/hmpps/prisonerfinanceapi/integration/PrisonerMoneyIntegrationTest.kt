@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.matching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
@@ -217,10 +218,12 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
 
-      generalLedgerApi.stubGetStatementEntriesList(accountId, emptyList())
+      val startDate = "2010-10-10"
+      val endDate = "2020-10-10"
+      generalLedgerApi.stubGetStatementEntriesList(accountId, emptyList(), startDate, endDate)
 
       val responseBody = webTestClient.get()
-        .uri("/prisoners/$accountRef/money/transactions")
+        .uri("/prisoners/$accountRef/money/transactions?startDate=$startDate&endDate=$endDate")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isOk()
@@ -230,7 +233,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       generalLedgerApi.verify(
         1,
-        getRequestedFor(urlPathMatching("/accounts/$accountId/statement")),
+        getRequestedFor(urlPathEqualTo("/accounts/$accountId/statement"))
+          .withQueryParam("startDate", equalTo(startDate))
+          .withQueryParam("endDate", equalTo(endDate)),
       )
       generalLedgerApi.verify(
         1,
