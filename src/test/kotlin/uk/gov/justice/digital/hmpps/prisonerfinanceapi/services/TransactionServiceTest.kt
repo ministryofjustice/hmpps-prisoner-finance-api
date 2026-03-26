@@ -31,9 +31,9 @@ class TransactionServiceTest {
     fun `Should return empty list if given an empty list`() {
       val prisonerId = UUID.randomUUID()
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId)).thenReturn(emptyList())
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(emptyList())
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId)
+      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null)
       assertThat(response).isEmpty()
     }
 
@@ -77,9 +77,9 @@ class TransactionServiceTest {
         ),
       )
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId)).thenReturn(glResponses)
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(glResponses)
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId)
+      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null)
 
       assertThat(response).hasSize(2)
       assertThat(response[0].description).isEqualTo(glResponses[0].description)
@@ -130,9 +130,9 @@ class TransactionServiceTest {
         ),
       )
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId)).thenReturn(glResponses)
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(glResponses)
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId)
+      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null)
 
       assertThat(response).hasSize(1)
       assertThat(response[0].description).isEqualTo(glResponses[0].description)
