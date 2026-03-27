@@ -1,7 +1,9 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
@@ -25,7 +27,12 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
   }
 
   private fun getPrisonLocation(statementEntryResponse: StatementEntryResponse): String {
-    val oppositePostingParent = statementEntryResponse.oppositePostings.first().subAccount.parentAccount
+    val firstOppositePosting = statementEntryResponse.oppositePostings.firstOrNull()
+      ?: throw CustomException(
+        message = "Unexpected posting without an opposite posting",
+        status = HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    val oppositePostingParent = firstOppositePosting.subAccount.parentAccount
     if (oppositePostingParent.type == StatementEntryAccountResponse.Type.PRISON) {
       return oppositePostingParent.reference
     } else {

@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubA
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
+import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.Instant
 import java.util.UUID
 
@@ -384,6 +385,42 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         getRequestedFor(urlPathEqualTo("/accounts"))
           .withQueryParam("reference", matching(parentAccount.reference)),
       )
+    }
+
+    @Test
+    fun `Should throw custom exception internal server error when no opposite postings are provided`() {
+      val accountId = UUID.randomUUID()
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = "A1234BC",
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+
+      val glResponses = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(),
+        ),
+      )
+
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef = parentAccountPrisoner.reference, returnAccountId = accountId)
+      generalLedgerApi.stubGetStatementEntriesList(accountId, glResponses)
+
+      val exception =
+        webTestClient.get()
+          .uri("/prisoners/${parentAccountPrisoner.reference}/money/transactions")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+          .exchange()
+          .expectStatus().is5xxServerError
+          .expectBody<ErrorResponse>()
+          .returnResult().responseBody!!
+
+      assertThat(exception.status).isEqualTo(500)
+      assertThat(exception.userMessage).isEqualTo("Unexpected posting without an opposite posting")
     }
 
     @Test

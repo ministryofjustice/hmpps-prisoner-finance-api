@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -8,6 +9,8 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.whenever
+import org.springframework.http.HttpStatus
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
@@ -141,6 +144,35 @@ class TransactionServiceTest {
       assertThat(response[0].credit).isEqualTo(glResponses[0].amount)
       assertThat(response[0].debit).isEqualTo(0)
       assertThat(response[0].date).isEqualTo(glResponses[0].transactionTimestamp)
+    }
+
+    @Test
+    fun `Should throw custom exception internal server error when no opposite postings are provided`() {
+      val prisonerId = UUID.randomUUID()
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = "A1234BC",
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+
+      val glResponses = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(),
+        ),
+      )
+
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(glResponses)
+
+      assertThatThrownBy {
+        transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null)
+      }.isInstanceOf(CustomException::class.java)
+        .extracting("status")
+        .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
     }
   }
 }
