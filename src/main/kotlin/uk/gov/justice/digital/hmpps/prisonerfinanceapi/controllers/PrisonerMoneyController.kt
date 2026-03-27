@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
@@ -22,6 +23,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerT
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.time.LocalDate
 
 @Tag(name = "Prisoner money controller")
 @RestController
@@ -70,12 +72,16 @@ class PrisonerMoneyController(
   @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RO])
   @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RO')")
   @GetMapping("/prisoners/{prisonNumber}/money/transactions")
-  fun getListOfTransactionsForPrisonNumber(@PathVariable prisonNumber: String): ResponseEntity<List<PrisonerTransactionResponse>> {
+  fun getListOfTransactionsForPrisonNumber(
+    @PathVariable prisonNumber: String,
+    @RequestParam(required = false) startDate: LocalDate?,
+    @RequestParam(required = false) endDate: LocalDate?,
+  ): ResponseEntity<List<PrisonerTransactionResponse>> {
     val account = accountService.getAccountByReference(prisonNumber)
 
     if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
 
-    val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id)
+    val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id, startDate, endDate)
 
     return ResponseEntity.ok(transactions)
   }

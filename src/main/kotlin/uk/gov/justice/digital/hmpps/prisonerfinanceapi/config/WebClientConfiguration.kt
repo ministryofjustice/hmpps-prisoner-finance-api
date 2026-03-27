@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager
 import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.AccountControllerApi
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.StatementControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.SubAccountControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.TransactionControllerApi
 import uk.gov.justice.hmpps.kotlin.auth.authorisedWebClient
@@ -46,4 +47,7 @@ class WebClientConfiguration(
 
   @Bean
   fun transactionApi(@Qualifier("generalLedgerApiWebClient") webClient: WebClient): TransactionControllerApi = TransactionControllerApi(webClient)
+
+  @Bean
+  fun statementControllerApi(@Qualifier("generalLedgerApiWebClient") webClient: WebClient): StatementControllerApi = StatementControllerApi(webClient)
 }

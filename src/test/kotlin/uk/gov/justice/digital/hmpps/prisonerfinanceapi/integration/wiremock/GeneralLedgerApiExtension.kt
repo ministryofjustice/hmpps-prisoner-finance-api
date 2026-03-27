@@ -5,8 +5,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.any
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import org.junit.jupiter.api.extension.AfterAllCallback
@@ -17,6 +19,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Gene
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import java.time.Instant
@@ -63,6 +66,48 @@ class GeneralLedgerApiMockServer :
       ),
     )
   }
+
+  fun stubGetStatementEntriesList(
+    accountId: UUID,
+    response: List<StatementEntryResponse>,
+    startDate: String = "",
+    endDate: String = "",
+  ) {
+    stubFor(
+      get(
+        urlPathEqualTo("/accounts/$accountId/statement"),
+      )
+        .apply {
+          if (startDate.isNotBlank()) {
+            withQueryParam("startDate", equalTo(startDate))
+          }
+        }
+        .apply {
+          if (endDate.isNotBlank()) {
+            withQueryParam("endDate", equalTo(endDate))
+          }
+        }
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(mapper.writeValueAsString(response))
+            .withStatus(200),
+        ),
+    )
+  }
+
+  fun stubGetStatementEntriesListNotFound(accountId: UUID) {
+    stubFor(
+      get("/accounts/$accountId/statement")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody("GL Account not found")
+            .withStatus(404),
+        ),
+    )
+  }
+
   fun stubGetTransactionList(accountId: UUID, response: List<PrisonerTransactionListResponse>) {
     stubFor(
       get("/accounts/$accountId/transactions")
@@ -85,6 +130,7 @@ class GeneralLedgerApiMockServer :
         ),
     )
   }
+
   fun stubGetTransactionThrows404(accountId: UUID) {
     generalLedgerApi.stubFor(
       get("/accounts/$accountId/transactions")
