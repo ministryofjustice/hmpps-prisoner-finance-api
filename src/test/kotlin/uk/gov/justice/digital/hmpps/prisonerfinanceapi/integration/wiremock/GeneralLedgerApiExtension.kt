@@ -77,8 +77,16 @@ class GeneralLedgerApiMockServer :
       get(
         urlPathEqualTo("/accounts/$accountId/statement"),
       )
-        .withQueryParam("startDate", equalTo(startDate))
-        .withQueryParam("endDate", equalTo(endDate))
+        .apply {
+          if (startDate.isNotBlank()) {
+            withQueryParam("startDate", equalTo(startDate))
+          }
+        }
+        .apply {
+          if (endDate.isNotBlank()) {
+            withQueryParam("endDate", equalTo(endDate))
+          }
+        }
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
