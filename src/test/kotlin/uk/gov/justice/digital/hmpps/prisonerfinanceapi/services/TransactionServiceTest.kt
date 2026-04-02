@@ -39,7 +39,7 @@ class TransactionServiceTest {
         PagedResponseStatementEntryResponse(content = emptyList(), pageNumber = 1, pageSize = 25, totalElements = 0, totalPages = 1, isLastPage = true))
 
       val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)
-      assertThat(response).isEmpty()
+      assertThat(response.content).isEmpty()
     }
 
     @Test
@@ -85,22 +85,22 @@ class TransactionServiceTest {
 
       whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)).thenReturn(statementPage)
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)
+      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25).content
 
-      assertThat(response).hasSize(2)
-      assertThat(response[0].description).isEqualTo(statementPageContents[0].description)
-      assertThat(response[0].accountType).isEqualTo(statementPageContents[0].subAccount.reference)
-      assertThat(response[0].location).isEqualTo("")
-      assertThat(response[0].credit).isEqualTo(statementPageContents[0].amount)
-      assertThat(response[0].debit).isEqualTo(0)
-      assertThat(response[0].date).isEqualTo(statementPageContents[0].transactionTimestamp)
+      assertThat(responseContent).hasSize(2)
+      assertThat(responseContent[0].description).isEqualTo(statementPageContents[0].description)
+      assertThat(responseContent[0].accountType).isEqualTo(statementPageContents[0].subAccount.reference)
+      assertThat(responseContent[0].location).isEqualTo("")
+      assertThat(responseContent[0].credit).isEqualTo(statementPageContents[0].amount)
+      assertThat(responseContent[0].debit).isEqualTo(0)
+      assertThat(responseContent[0].date).isEqualTo(statementPageContents[0].transactionTimestamp)
 
-      assertThat(response[1].description).isEqualTo(statementPageContents[1].description)
-      assertThat(response[1].accountType).isEqualTo(statementPageContents[1].subAccount.reference)
-      assertThat(response[1].location).isEqualTo("")
-      assertThat(response[1].credit).isEqualTo(0)
-      assertThat(response[1].debit).isEqualTo(statementPageContents[1].amount)
-      assertThat(response[1].date).isEqualTo(statementPageContents[1].transactionTimestamp)
+      assertThat(responseContent[1].description).isEqualTo(statementPageContents[1].description)
+      assertThat(responseContent[1].accountType).isEqualTo(statementPageContents[1].subAccount.reference)
+      assertThat(responseContent[1].location).isEqualTo("")
+      assertThat(responseContent[1].credit).isEqualTo(0)
+      assertThat(responseContent[1].debit).isEqualTo(statementPageContents[1].amount)
+      assertThat(responseContent[1].date).isEqualTo(statementPageContents[1].transactionTimestamp)
     }
 
     @Test
@@ -140,15 +140,15 @@ class TransactionServiceTest {
 
       whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)).thenReturn(statementPage )
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)
+      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25).content
 
-      assertThat(response).hasSize(1)
-      assertThat(response[0].description).isEqualTo(statementPageContents[0].description)
-      assertThat(response[0].accountType).isEqualTo(statementPageContents[0].subAccount.reference)
-      assertThat(response[0].location).isEqualTo("LEI")
-      assertThat(response[0].credit).isEqualTo(statementPageContents[0].amount)
-      assertThat(response[0].debit).isEqualTo(0)
-      assertThat(response[0].date).isEqualTo(statementPageContents[0].transactionTimestamp)
+      assertThat(responseContent).hasSize(1)
+      assertThat(responseContent[0].description).isEqualTo(statementPageContents[0].description)
+      assertThat(responseContent[0].accountType).isEqualTo(statementPageContents[0].subAccount.reference)
+      assertThat(responseContent[0].location).isEqualTo("LEI")
+      assertThat(responseContent[0].credit).isEqualTo(statementPageContents[0].amount)
+      assertThat(responseContent[0].debit).isEqualTo(0)
+      assertThat(responseContent[0].date).isEqualTo(statementPageContents[0].transactionTimestamp)
     }
 
     @Test

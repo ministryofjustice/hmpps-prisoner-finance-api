@@ -7,6 +7,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PagedPrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import java.time.LocalDate
 import java.util.UUID
@@ -14,7 +15,18 @@ import java.util.UUID
 @Service
 class TransactionService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
 
-  fun getPrisonerTransactionsByAccountId(accountId: UUID, startDate: LocalDate?, endDate: LocalDate?, pageNumber : Int, pageSize : Int): List<PrisonerTransactionResponse> = generalLedgerApiClient.getStatementForAccountId(accountId, startDate, endDate, pageNumber, pageSize).content.map { statementEntryResponse ->
+  fun getPrisonerTransactionsByAccountId(
+    accountId: UUID,
+    startDate: LocalDate?,
+    endDate: LocalDate?,
+    pageNumber: Int,
+    pageSize: Int
+  ): PagedPrisonerTransactionResponse {
+
+    val statementPage = generalLedgerApiClient.getStatementForAccountId(accountId, startDate, endDate, pageNumber, pageSize)
+
+ val transactions =  statementPage.content.map {
+    statementEntryResponse ->
     val (credit, debit) = getCreditAndDebit(statementEntryResponse)
     return@map PrisonerTransactionResponse(
       date = statementEntryResponse.transactionTimestamp,
@@ -25,6 +37,16 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
       accountType = statementEntryResponse.subAccount.reference,
     )
   }
+
+    return PagedPrisonerTransactionResponse(
+      content = transactions,
+      totalPages = statementPage.totalPages,
+      pageNumber = statementPage.pageNumber,
+      pageSize = statementPage.pageSize,
+      totalElements = statementPage.totalElements,
+      isLastPage = statementPage.isLastPage
+    )
+}
 
   private fun getPrisonLocation(statementEntryResponse: StatementEntryResponse): String {
     val firstOppositePosting = statementEntryResponse.oppositePostings.firstOrNull()

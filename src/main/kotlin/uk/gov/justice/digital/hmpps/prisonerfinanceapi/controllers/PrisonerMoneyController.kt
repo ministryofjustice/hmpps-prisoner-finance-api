@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PagedPrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
@@ -79,7 +81,7 @@ class PrisonerMoneyController(
     @RequestParam(required = false) endDate: LocalDate?,
     @RequestParam @Min(1) pageNumber: Int = 1,
     @RequestParam @Min(1) pageSize: Int = 25,
-  ): ResponseEntity<List<PrisonerTransactionResponse>> {
+  ): ResponseEntity<PagedPrisonerTransactionResponse> {
     val account = accountService.getAccountByReference(prisonNumber)
 
     if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")

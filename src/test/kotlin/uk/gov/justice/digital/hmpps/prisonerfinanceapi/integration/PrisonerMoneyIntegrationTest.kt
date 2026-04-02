@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Stat
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PagedPrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
@@ -231,9 +232,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isOk()
-        .expectBody<List<StatementEntryResponse>>().returnResult().responseBody!!
+        .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
 
-      assertThat(responseBody.size).isEqualTo(0)
+      assertThat(responseBody.content.size).isEqualTo(0)
 
       generalLedgerApi.verify(
         1,
@@ -293,9 +294,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isOk
-        .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
+        .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
 
-      val tx1 = responseBody[0]
+      val tx1 = responseBody.content[0]
       assertThat(tx1.date).isEqualTo(statementPage.content[0].transactionTimestamp)
       assertThat(tx1.description).isEqualTo(statementPage.content[0].description)
       assertThat(tx1.credit).isEqualTo(2)
@@ -364,12 +365,14 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isOk
-        .expectBody<List<PrisonerTransactionResponse>>()
+        .expectBody<PagedPrisonerTransactionResponse>()
         .returnResult().responseBody!!
 
-      assertThat(responseBody.size).isEqualTo(2)
+      val responseBodyContent = responseBody.content
 
-      val tx1 = responseBody[0]
+      assertThat(responseBodyContent.size).isEqualTo(2)
+
+      val tx1 = responseBodyContent[0]
       assertThat(tx1.date).isEqualTo(statementPage.content[0].transactionTimestamp)
       assertThat(tx1.description).isEqualTo(statementPage.content[0].description)
       assertThat(tx1.credit).isEqualTo(2)
@@ -377,7 +380,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       assertThat(tx1.location).isEqualTo("")
       assertThat(tx1.accountType).isEqualTo("CASH")
 
-      val tx2 = responseBody[1]
+      val tx2 = responseBodyContent[1]
       assertThat(tx2.date).isEqualTo(statementPage.content[1].transactionTimestamp)
       assertThat(tx2.description).isEqualTo(statementPage.content[1].description)
       assertThat(tx2.credit).isEqualTo(0)
@@ -494,9 +497,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         StatementEntryAccountResponse.Type.PRISON,
       )
 
-
       val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
-
       val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
 
       val statementPageContents = listOf(
@@ -522,9 +523,14 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isOk()
-        .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
+        .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
 
-        assertThat(responseBody.size).isEqualTo(1)
+        assertThat(responseBody.content.size).isEqualTo(1)
+        assertThat(responseBody.pageNumber).isEqualTo(5)
+        assertThat(responseBody.pageSize).isEqualTo(20L)
+      assertThat(responseBody.isLastPage).isTrue
+      assertThat(responseBody.totalElements).isEqualTo(81)
+      assertThat(responseBody.totalPages).isEqualTo(5)
 
       generalLedgerApi.verify(
         1,
