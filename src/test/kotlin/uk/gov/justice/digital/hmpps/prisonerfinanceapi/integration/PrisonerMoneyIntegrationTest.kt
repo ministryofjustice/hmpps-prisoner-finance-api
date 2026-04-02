@@ -485,7 +485,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
 
       val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
-        reference = "A1234BC",
+        reference = accountRef,
         StatementEntryAccountResponse.Type.PRISONER,
       )
 
