@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Gene
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
@@ -221,7 +222,8 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val startDate = "2010-10-10"
       val endDate = "2020-10-10"
-      generalLedgerApi.stubGetStatementEntriesList(accountId, emptyList(), startDate, endDate)
+      val emptyPage = PagedResponseStatementEntryResponse(content = emptyList(), pageNumber = 1, pageSize = 25, totalElements = 0, totalPages = 1, isLastPage = true)
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, emptyPage, startDate, endDate)
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions?startDate=$startDate&endDate=$endDate")
@@ -266,7 +268,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
 
-      val glResponses = listOf(
+      val statementPageContents = listOf(
         serviceTestHelpers.createStatementEntryResponse(
           subAccount = subAccountCashPrisoner,
           postingType = StatementEntryResponse.PostingType.CR,
@@ -281,7 +283,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      generalLedgerApi.stubGetStatementEntriesList(accountId, glResponses)
+      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = statementPageContents.size.toLong(), totalPages = 1, isLastPage = true)
+
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, statementPage)
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions")
@@ -291,8 +295,8 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
 
       val tx1 = responseBody[0]
-      assertThat(tx1.date).isEqualTo(glResponses[0].transactionTimestamp)
-      assertThat(tx1.description).isEqualTo(glResponses[0].description)
+      assertThat(tx1.date).isEqualTo(statementPage.content[0].transactionTimestamp)
+      assertThat(tx1.description).isEqualTo(statementPage.content[0].description)
       assertThat(tx1.credit).isEqualTo(2)
       assertThat(tx1.debit).isEqualTo(0)
       assertThat(tx1.location).isEqualTo(parentAccountPrison.reference)
@@ -322,7 +326,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val subAccountSavings = serviceTestHelpers.createSubAccountWithParentResponse(parentAccount, "SAVINGS")
 
-      val glResponses = listOf(
+      val statementPageContents = listOf(
         serviceTestHelpers.createStatementEntryResponse(
           subAccount = subAccountCash,
           postingType = StatementEntryResponse.PostingType.CR,
@@ -348,9 +352,11 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
           ),
         ),
       )
+      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = statementPageContents.size.toLong(), totalPages = 1, isLastPage = true)
+
 
       generalLedgerApi.stubGetAccountListWithAccount(accountRef = parentAccount.reference, returnAccountId = accountId)
-      generalLedgerApi.stubGetStatementEntriesList(accountId, glResponses)
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, statementPage)
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/${parentAccount.reference}/money/transactions")
@@ -363,16 +369,16 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       assertThat(responseBody.size).isEqualTo(2)
 
       val tx1 = responseBody[0]
-      assertThat(tx1.date).isEqualTo(glResponses[0].transactionTimestamp)
-      assertThat(tx1.description).isEqualTo(glResponses[0].description)
+      assertThat(tx1.date).isEqualTo(statementPage.content[0].transactionTimestamp)
+      assertThat(tx1.description).isEqualTo(statementPage.content[0].description)
       assertThat(tx1.credit).isEqualTo(2)
       assertThat(tx1.debit).isEqualTo(0)
       assertThat(tx1.location).isEqualTo("")
       assertThat(tx1.accountType).isEqualTo("CASH")
 
       val tx2 = responseBody[1]
-      assertThat(tx2.date).isEqualTo(glResponses[1].transactionTimestamp)
-      assertThat(tx2.description).isEqualTo(glResponses[1].description)
+      assertThat(tx2.date).isEqualTo(statementPage.content[1].transactionTimestamp)
+      assertThat(tx2.description).isEqualTo(statementPage.content[1].description)
       assertThat(tx2.credit).isEqualTo(0)
       assertThat(tx2.debit).isEqualTo(2)
       assertThat(tx2.location).isEqualTo("")
@@ -398,7 +404,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
 
-      val glResponses = listOf(
+      val statementPageContents = listOf(
         serviceTestHelpers.createStatementEntryResponse(
           subAccount = subAccountCashPrisoner,
           postingType = StatementEntryResponse.PostingType.CR,
@@ -407,8 +413,10 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         ),
       )
 
+      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = statementPageContents.size.toLong(), totalPages = 1, isLastPage = true)
+
       generalLedgerApi.stubGetAccountListWithAccount(accountRef = parentAccountPrisoner.reference, returnAccountId = accountId)
-      generalLedgerApi.stubGetStatementEntriesList(accountId, glResponses)
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, statementPage)
 
       val exception =
         webTestClient.get()

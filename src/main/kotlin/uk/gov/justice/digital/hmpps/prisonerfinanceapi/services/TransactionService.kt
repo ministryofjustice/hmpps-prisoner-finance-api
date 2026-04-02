@@ -14,7 +14,7 @@ import java.util.UUID
 @Service
 class TransactionService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
 
-  fun getPrisonerTransactionsByAccountId(accountId: UUID, startDate: LocalDate?, endDate: LocalDate?): List<PrisonerTransactionResponse> = generalLedgerApiClient.getStatementForAccountId(accountId, startDate, endDate).map { statementEntryResponse ->
+  fun getPrisonerTransactionsByAccountId(accountId: UUID, startDate: LocalDate?, endDate: LocalDate?): List<PrisonerTransactionResponse> = generalLedgerApiClient.getStatementForAccountId(accountId, startDate, endDate).content.map { statementEntryResponse ->
     val (credit, debit) = getCreditAndDebit(statementEntryResponse)
     return@map PrisonerTransactionResponse(
       date = statementEntryResponse.transactionTimestamp,

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtensionContext
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
@@ -67,9 +68,9 @@ class GeneralLedgerApiMockServer :
     )
   }
 
-  fun stubGetStatementEntriesList(
+  fun stubGetStatementEntriesPage(
     accountId: UUID,
-    response: List<StatementEntryResponse>,
+    response: PagedResponseStatementEntryResponse,
     startDate: String = "",
     endDate: String = "",
   ) {
