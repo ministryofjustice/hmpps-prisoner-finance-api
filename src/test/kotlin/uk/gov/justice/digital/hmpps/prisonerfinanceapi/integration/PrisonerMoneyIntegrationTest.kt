@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension
@@ -24,7 +23,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Stat
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PagedPrisonerTransactionResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.Instant
@@ -356,7 +354,6 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       )
       val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = statementPageContents.size.toLong(), totalPages = 1, isLastPage = true)
 
-
       generalLedgerApi.stubGetAccountListWithAccount(accountRef = parentAccount.reference, returnAccountId = accountId)
       generalLedgerApi.stubGetStatementEntriesPage(accountId, statementPage)
 
@@ -519,15 +516,15 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       generalLedgerApi.stubGetStatementEntriesPage(accountId, page)
 
       val responseBody = webTestClient.get()
-        .uri("/prisoners/$accountRef/money/transactions?pageNumber=${page.pageNumber}&pageSize=${page.pageSize}&page=${page}")
+        .uri("/prisoners/$accountRef/money/transactions?pageNumber=${page.pageNumber}&pageSize=${page.pageSize}&page=$page")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isOk()
         .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
 
-        assertThat(responseBody.content.size).isEqualTo(1)
-        assertThat(responseBody.pageNumber).isEqualTo(5)
-        assertThat(responseBody.pageSize).isEqualTo(20L)
+      assertThat(responseBody.content.size).isEqualTo(1)
+      assertThat(responseBody.pageNumber).isEqualTo(5)
+      assertThat(responseBody.pageSize).isEqualTo(20L)
       assertThat(responseBody.isLastPage).isTrue
       assertThat(responseBody.totalElements).isEqualTo(81)
       assertThat(responseBody.totalPages).isEqualTo(5)

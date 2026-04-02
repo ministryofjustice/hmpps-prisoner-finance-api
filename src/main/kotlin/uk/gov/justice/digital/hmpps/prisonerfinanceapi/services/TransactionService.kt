@@ -20,23 +20,21 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
     startDate: LocalDate?,
     endDate: LocalDate?,
     pageNumber: Int,
-    pageSize: Int
+    pageSize: Int,
   ): PagedPrisonerTransactionResponse {
-
     val statementPage = generalLedgerApiClient.getStatementForAccountId(accountId, startDate, endDate, pageNumber, pageSize)
 
- val transactions =  statementPage.content.map {
-    statementEntryResponse ->
-    val (credit, debit) = getCreditAndDebit(statementEntryResponse)
-    return@map PrisonerTransactionResponse(
-      date = statementEntryResponse.transactionTimestamp,
-      description = statementEntryResponse.description,
-      credit = credit,
-      debit = debit,
-      location = getPrisonLocation(statementEntryResponse),
-      accountType = statementEntryResponse.subAccount.reference,
-    )
-  }
+    val transactions = statementPage.content.map { statementEntryResponse ->
+      val (credit, debit) = getCreditAndDebit(statementEntryResponse)
+      return@map PrisonerTransactionResponse(
+        date = statementEntryResponse.transactionTimestamp,
+        description = statementEntryResponse.description,
+        credit = credit,
+        debit = debit,
+        location = getPrisonLocation(statementEntryResponse),
+        accountType = statementEntryResponse.subAccount.reference,
+      )
+    }
 
     return PagedPrisonerTransactionResponse(
       content = transactions,
@@ -44,9 +42,9 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
       pageNumber = statementPage.pageNumber,
       pageSize = statementPage.pageSize,
       totalElements = statementPage.totalElements,
-      isLastPage = statementPage.isLastPage
+      isLastPage = statementPage.isLastPage,
     )
-}
+  }
 
   private fun getPrisonLocation(statementEntryResponse: StatementEntryResponse): String {
     val firstOppositePosting = statementEntryResponse.oppositePostings.firstOrNull()
