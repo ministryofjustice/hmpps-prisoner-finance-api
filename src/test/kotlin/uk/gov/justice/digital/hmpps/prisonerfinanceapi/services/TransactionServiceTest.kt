@@ -12,6 +12,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
@@ -34,10 +35,12 @@ class TransactionServiceTest {
     fun `Should return empty list if given an empty list`() {
       val prisonerId = UUID.randomUUID()
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(emptyList())
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)).thenReturn(
+        PagedResponseStatementEntryResponse(content = emptyList(), pageNumber = 1, pageSize = 25, totalElements = 0, totalPages = 1, isLastPage = true),
+      )
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null)
-      assertThat(response).isEmpty()
+      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)
+      assertThat(response.content).isEmpty()
     }
 
     @Test
@@ -53,7 +56,7 @@ class TransactionServiceTest {
 
       val subAccountSavings = serviceTestHelpers.createSubAccountWithParentResponse(parentAccount, "SAVINGS")
 
-      val glResponses = listOf(
+      val statementPageContents = listOf(
         serviceTestHelpers.createStatementEntryResponse(
           subAccount = subAccountCash,
           postingType = StatementEntryResponse.PostingType.CR,
@@ -79,25 +82,26 @@ class TransactionServiceTest {
           ),
         ),
       )
+      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = 2, totalPages = 1, isLastPage = true)
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(glResponses)
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)).thenReturn(statementPage)
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null)
+      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25).content
 
-      assertThat(response).hasSize(2)
-      assertThat(response[0].description).isEqualTo(glResponses[0].description)
-      assertThat(response[0].accountType).isEqualTo(glResponses[0].subAccount.reference)
-      assertThat(response[0].location).isEqualTo("")
-      assertThat(response[0].credit).isEqualTo(glResponses[0].amount)
-      assertThat(response[0].debit).isEqualTo(0)
-      assertThat(response[0].date).isEqualTo(glResponses[0].transactionTimestamp)
+      assertThat(responseContent).hasSize(2)
+      assertThat(responseContent[0].description).isEqualTo(statementPageContents[0].description)
+      assertThat(responseContent[0].accountType).isEqualTo(statementPageContents[0].subAccount.reference)
+      assertThat(responseContent[0].location).isEqualTo("")
+      assertThat(responseContent[0].credit).isEqualTo(statementPageContents[0].amount)
+      assertThat(responseContent[0].debit).isEqualTo(0)
+      assertThat(responseContent[0].date).isEqualTo(statementPageContents[0].transactionTimestamp)
 
-      assertThat(response[1].description).isEqualTo(glResponses[1].description)
-      assertThat(response[1].accountType).isEqualTo(glResponses[1].subAccount.reference)
-      assertThat(response[1].location).isEqualTo("")
-      assertThat(response[1].credit).isEqualTo(0)
-      assertThat(response[1].debit).isEqualTo(glResponses[1].amount)
-      assertThat(response[1].date).isEqualTo(glResponses[1].transactionTimestamp)
+      assertThat(responseContent[1].description).isEqualTo(statementPageContents[1].description)
+      assertThat(responseContent[1].accountType).isEqualTo(statementPageContents[1].subAccount.reference)
+      assertThat(responseContent[1].location).isEqualTo("")
+      assertThat(responseContent[1].credit).isEqualTo(0)
+      assertThat(responseContent[1].debit).isEqualTo(statementPageContents[1].amount)
+      assertThat(responseContent[1].date).isEqualTo(statementPageContents[1].transactionTimestamp)
     }
 
     @Test
@@ -118,7 +122,7 @@ class TransactionServiceTest {
 
       val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
 
-      val glResponses = listOf(
+      val statementPageContents = listOf(
         serviceTestHelpers.createStatementEntryResponse(
           subAccount = subAccountCashPrisoner,
           postingType = StatementEntryResponse.PostingType.CR,
@@ -132,18 +136,19 @@ class TransactionServiceTest {
           ),
         ),
       )
+      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = 1, totalPages = 1, isLastPage = true)
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(glResponses)
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)).thenReturn(statementPage)
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null)
+      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25).content
 
-      assertThat(response).hasSize(1)
-      assertThat(response[0].description).isEqualTo(glResponses[0].description)
-      assertThat(response[0].accountType).isEqualTo(glResponses[0].subAccount.reference)
-      assertThat(response[0].location).isEqualTo("LEI")
-      assertThat(response[0].credit).isEqualTo(glResponses[0].amount)
-      assertThat(response[0].debit).isEqualTo(0)
-      assertThat(response[0].date).isEqualTo(glResponses[0].transactionTimestamp)
+      assertThat(responseContent).hasSize(1)
+      assertThat(responseContent[0].description).isEqualTo(statementPageContents[0].description)
+      assertThat(responseContent[0].accountType).isEqualTo(statementPageContents[0].subAccount.reference)
+      assertThat(responseContent[0].location).isEqualTo("LEI")
+      assertThat(responseContent[0].credit).isEqualTo(statementPageContents[0].amount)
+      assertThat(responseContent[0].debit).isEqualTo(0)
+      assertThat(responseContent[0].date).isEqualTo(statementPageContents[0].transactionTimestamp)
     }
 
     @Test
@@ -157,7 +162,7 @@ class TransactionServiceTest {
 
       val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
 
-      val glResponses = listOf(
+      val statementPageContents = listOf(
         serviceTestHelpers.createStatementEntryResponse(
           subAccount = subAccountCashPrisoner,
           postingType = StatementEntryResponse.PostingType.CR,
@@ -166,10 +171,12 @@ class TransactionServiceTest {
         ),
       )
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(glResponses)
+      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = 1, totalPages = 1, isLastPage = true)
+
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(statementPage)
 
       assertThatThrownBy {
-        transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null)
+        transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)
       }.isInstanceOf(CustomException::class.java)
         .extracting("status")
         .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)

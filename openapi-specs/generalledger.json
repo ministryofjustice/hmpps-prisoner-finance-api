@@ -6,7 +6,7 @@
       "name" : "HMPPS Digital Studio",
       "email" : "feedback@digital.justice.gov.uk"
     },
-    "version" : "2026-03-31.365.4091946"
+    "version" : "2026-04-02"
   },
   "servers" : [ {
     "url" : "https://prisoner-finance-general-ledger-api-dev.hmpps.service.justice.gov.uk",
@@ -1029,6 +1029,24 @@
             "type" : "string",
             "format" : "uuid"
           }
+        }, {
+          "name" : "pageNumber",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
+        }, {
+          "name" : "pageSize",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
         } ],
         "responses" : {
           "200" : {
@@ -1036,10 +1054,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/StatementEntryResponse"
-                  }
+                  "$ref" : "#/components/schemas/PagedResponseStatementEntryResponse"
                 }
               }
             }
@@ -1598,6 +1613,37 @@
           }
         },
         "required" : [ "id", "parentAccount", "subAccountReference" ]
+      },
+      "PagedResponseStatementEntryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StatementEntryResponse"
+            }
+          },
+          "pageNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "isLastPage" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "content", "isLastPage", "pageNumber", "pageSize", "totalElements", "totalPages" ]
       },
       "StatementEntryAccountResponse" : {
         "type" : "object",

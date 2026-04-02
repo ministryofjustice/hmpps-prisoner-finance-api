@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -19,7 +20,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PagedPrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
@@ -40,7 +41,7 @@ class PrisonerMoneyController(
       ApiResponse(
         responseCode = "200",
         description = "Retrieved the transactions",
-        content = [Content(mediaType = "application/json", array = ArraySchema(schema = Schema(implementation = PrisonerTransactionResponse::class)))],
+        content = [Content(mediaType = "application/json", array = ArraySchema(schema = Schema(implementation = PagedPrisonerTransactionResponse::class)))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -76,12 +77,14 @@ class PrisonerMoneyController(
     @PathVariable prisonNumber: String,
     @RequestParam(required = false) startDate: LocalDate?,
     @RequestParam(required = false) endDate: LocalDate?,
-  ): ResponseEntity<List<PrisonerTransactionResponse>> {
+    @RequestParam @Min(1) pageNumber: Int = 1,
+    @RequestParam @Min(1) pageSize: Int = 25,
+  ): ResponseEntity<PagedPrisonerTransactionResponse> {
     val account = accountService.getAccountByReference(prisonNumber)
 
     if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
 
-    val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id, startDate, endDate)
+    val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id, startDate, endDate, pageNumber, pageSize)
 
     return ResponseEntity.ok(transactions)
   }

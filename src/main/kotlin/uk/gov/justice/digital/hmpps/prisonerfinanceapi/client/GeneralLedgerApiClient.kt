@@ -10,8 +10,8 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.Sub
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.TransactionControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import java.time.LocalDate
 import java.util.UUID
@@ -71,9 +71,9 @@ class GeneralLedgerApiClient(
     },
   )
 
-  fun getStatementForAccountId(accountId: UUID, startDate: LocalDate?, endDate: LocalDate?): List<StatementEntryResponse> = handleExceptions(
+  fun getStatementForAccountId(accountId: UUID, startDate: LocalDate?, endDate: LocalDate?, pageNumber: Int = 1, pageSize: Int = 25): PagedResponseStatementEntryResponse = handleExceptions(
     {
-      statementControllerApi.getStatementForAccountId(accountId, startDate, endDate).block()
+      statementControllerApi.getStatementForAccountId(accountId, startDate, endDate, pageNumber, pageSize).block()
         ?: throw IllegalStateException("Received null response when retrieving a list of statements for account $accountId")
     },
   )
