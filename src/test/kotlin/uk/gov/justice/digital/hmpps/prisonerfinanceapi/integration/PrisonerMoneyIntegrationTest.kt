@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension
@@ -474,6 +475,68 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isEqualTo(HttpStatus.BAD_GATEWAY)
+    }
+
+    @Test
+    fun `should pass down pagination query to general ledger`() {
+      val accountRef = "A12345"
+      val accountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = "A1234BC",
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+
+      val statementPageContents = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
+          ),
+        ),
+      )
+
+      val page = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 5, pageSize = 20, totalElements = 81, totalPages = 5, isLastPage = true)
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, page)
+
+      val responseBody = webTestClient.get()
+        .uri("/prisoners/$accountRef/money/transactions?pageNumber=${page.pageNumber}&pageSize=${page.pageSize}&page=${page}")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody<List<PrisonerTransactionResponse>>().returnResult().responseBody!!
+
+        assertThat(responseBody.size).isEqualTo(1)
+
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts/$accountId/statement"))
+          .withQueryParam("pageSize", equalTo(page.pageSize.toString()))
+          .withQueryParam("pageNumber", equalTo(page.pageNumber.toString())),
+      )
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts"))
+          .withQueryParam("reference", matching(accountRef)),
+      )
     }
   }
 }

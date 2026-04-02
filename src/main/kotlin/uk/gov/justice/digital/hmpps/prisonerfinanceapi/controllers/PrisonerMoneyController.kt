@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -76,12 +77,14 @@ class PrisonerMoneyController(
     @PathVariable prisonNumber: String,
     @RequestParam(required = false) startDate: LocalDate?,
     @RequestParam(required = false) endDate: LocalDate?,
+    @RequestParam @Min(1) pageNumber: Int = 1,
+    @RequestParam @Min(1) pageSize: Int = 25,
   ): ResponseEntity<List<PrisonerTransactionResponse>> {
     val account = accountService.getAccountByReference(prisonNumber)
 
     if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
 
-    val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id, startDate, endDate)
+    val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id, startDate, endDate, pageNumber, pageSize)
 
     return ResponseEntity.ok(transactions)
   }
