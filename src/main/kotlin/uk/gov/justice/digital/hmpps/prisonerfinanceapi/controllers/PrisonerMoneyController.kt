@@ -43,7 +43,7 @@ class PrisonerMoneyController(
       ApiResponse(
         responseCode = "200",
         description = "Retrieved the transactions",
-        content = [Content(mediaType = "application/json", array = ArraySchema(schema = Schema(implementation = PrisonerTransactionResponse::class)))],
+        content = [Content(mediaType = "application/json", array = ArraySchema(schema = Schema(implementation = PagedPrisonerTransactionResponse::class)))],
       ),
       ApiResponse(
         responseCode = "401",
