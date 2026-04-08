@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.controllers
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.ArraySchema
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -35,6 +36,24 @@ class PrisonerMoneyController(
   @Operation(
     summary = "Get list of transactions for a prisoner",
     description = "Returns a list of transactions for a given prisoner number",
+    parameters = [
+      Parameter(
+        name = "startDate",
+        description = "Filter statements from start date (inclusive) in a yyyy-MM-dd format",
+        required = false,
+        example = "2025-12-24",
+      ),
+      Parameter(
+        name = "endDate",
+        description = "Filter statements to end date (inclusive) in a yyyy-MM-dd format",
+        required = false,
+        example = "2025-12-25",
+      ),
+      Parameter(name = "pageNumber", description = "Filter statements from page number"),
+      Parameter(name = "pageSize", description = "Sets the page size when returning the pages results"),
+      Parameter(name = "credit", description = "Filter statements using the PostingType CR"),
+      Parameter(name = "debit", description = "Filter statements using the PostingType DR"),
+    ],
   )
   @ApiResponses(
     value = [
@@ -79,12 +98,22 @@ class PrisonerMoneyController(
     @RequestParam(required = false) endDate: LocalDate?,
     @RequestParam @Min(1) pageNumber: Int = 1,
     @RequestParam @Min(1) pageSize: Int = 25,
+    @RequestParam(required = false) credit: Boolean = false,
+    @RequestParam(required = false) debit: Boolean = false,
   ): ResponseEntity<PagedPrisonerTransactionResponse> {
     val account = accountService.getAccountByReference(prisonNumber)
 
     if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
 
-    val transactions = transactionService.getPrisonerTransactionsByAccountId(account.id, startDate, endDate, pageNumber, pageSize)
+    val transactions = transactionService.getPrisonerTransactionsByAccountId(
+      accountId = account.id,
+      startDate = startDate,
+      endDate = endDate,
+      credit = credit,
+      debit = debit,
+      pageNumber = pageNumber,
+      pageSize = pageSize,
+    )
 
     return ResponseEntity.ok(transactions)
   }

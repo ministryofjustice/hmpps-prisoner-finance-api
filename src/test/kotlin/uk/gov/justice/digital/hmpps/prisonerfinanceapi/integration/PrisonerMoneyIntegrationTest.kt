@@ -9,6 +9,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
@@ -222,7 +224,14 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val startDate = "2010-10-10"
       val endDate = "2020-10-10"
-      val emptyPage = PagedResponseStatementEntryResponse(content = emptyList(), pageNumber = 1, pageSize = 25, totalElements = 0, totalPages = 1, isLastPage = true)
+      val emptyPage = PagedResponseStatementEntryResponse(
+        content = emptyList(),
+        pageNumber = 1,
+        pageSize = 25,
+        totalElements = 0,
+        totalPages = 1,
+        isLastPage = true,
+      )
       generalLedgerApi.stubGetStatementEntriesPage(accountId, emptyPage, startDate, endDate)
 
       val responseBody = webTestClient.get()
@@ -283,7 +292,14 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = statementPageContents.size.toLong(), totalPages = 1, isLastPage = true)
+      val statementPage = PagedResponseStatementEntryResponse(
+        content = statementPageContents,
+        pageNumber = 1,
+        pageSize = 25,
+        totalElements = statementPageContents.size.toLong(),
+        totalPages = 1,
+        isLastPage = true,
+      )
 
       generalLedgerApi.stubGetStatementEntriesPage(accountId, statementPage)
 
@@ -352,7 +368,14 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
           ),
         ),
       )
-      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = statementPageContents.size.toLong(), totalPages = 1, isLastPage = true)
+      val statementPage = PagedResponseStatementEntryResponse(
+        content = statementPageContents,
+        pageNumber = 1,
+        pageSize = 25,
+        totalElements = statementPageContents.size.toLong(),
+        totalPages = 1,
+        isLastPage = true,
+      )
 
       generalLedgerApi.stubGetAccountListWithAccount(accountRef = parentAccount.reference, returnAccountId = accountId)
       generalLedgerApi.stubGetStatementEntriesPage(accountId, statementPage)
@@ -414,9 +437,19 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = statementPageContents.size.toLong(), totalPages = 1, isLastPage = true)
+      val statementPage = PagedResponseStatementEntryResponse(
+        content = statementPageContents,
+        pageNumber = 1,
+        pageSize = 25,
+        totalElements = statementPageContents.size.toLong(),
+        totalPages = 1,
+        isLastPage = true,
+      )
 
-      generalLedgerApi.stubGetAccountListWithAccount(accountRef = parentAccountPrisoner.reference, returnAccountId = accountId)
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = parentAccountPrisoner.reference,
+        returnAccountId = accountId,
+      )
       generalLedgerApi.stubGetStatementEntriesPage(accountId, statementPage)
 
       val exception =
@@ -512,7 +545,14 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      val page = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 5, pageSize = 20, totalElements = 81, totalPages = 5, isLastPage = true)
+      val page = PagedResponseStatementEntryResponse(
+        content = statementPageContents,
+        pageNumber = 5,
+        pageSize = 20,
+        totalElements = 81,
+        totalPages = 5,
+        isLastPage = true,
+      )
       generalLedgerApi.stubGetStatementEntriesPage(accountId, page)
 
       val responseBody = webTestClient.get()
@@ -540,6 +580,193 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         getRequestedFor(urlPathEqualTo("/accounts"))
           .withQueryParam("reference", matching(accountRef)),
       )
+    }
+
+    @Test
+    fun `should default pass false CREDIT & DEBIT to GL if not provided`() {
+      val accountRef = "A12345"
+      val accountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = accountRef,
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+
+      val statementPageContents = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
+          ),
+        ),
+      )
+
+      val page = PagedResponseStatementEntryResponse(
+        content = statementPageContents,
+        pageNumber = 5,
+        pageSize = 20,
+        totalElements = 81,
+        totalPages = 5,
+        isLastPage = true,
+      )
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, page)
+
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/transactions")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
+
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts/$accountId/statement"))
+          .withQueryParam("pageSize", equalTo("25"))
+          .withQueryParam("pageNumber", equalTo("1"))
+          .withQueryParam("credit", equalTo("false"))
+          .withQueryParam("debit", equalTo("false")),
+      )
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts"))
+          .withQueryParam("reference", matching(accountRef)),
+      )
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+      "true, true",
+      "true, false",
+      "false, true",
+      "false, false",
+    )
+    fun `should default pass provided CREDIT & DEBIT to GL if provided`(credit: Boolean, debit: Boolean) {
+      val accountRef = "A12345"
+      val accountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = accountRef,
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+
+      val statementPageContents = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
+          ),
+        ),
+      )
+
+      val page = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 5, pageSize = 20, totalElements = 81, totalPages = 5, isLastPage = true)
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, page)
+
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/transactions?credit=$credit&debit=$debit")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
+
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts/$accountId/statement"))
+          .withQueryParam("pageSize", equalTo("25"))
+          .withQueryParam("pageNumber", equalTo("1"))
+          .withQueryParam("credit", equalTo(credit.toString()))
+          .withQueryParam("debit", equalTo(debit.toString())),
+      )
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts"))
+          .withQueryParam("reference", matching(accountRef)),
+      )
+    }
+
+    @Test
+    fun `should return 400 when credit query is malformed`() {
+      webTestClient.get()
+        .uri("/prisoners/ABCXX123/money/transactions?credit=ABD")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `should return 400 when debit query is malformed`() {
+      webTestClient.get()
+        .uri("/prisoners/ABCXX123/money/transactions?debit=ABD")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `should return 400 when startDate query is malformed`() {
+      webTestClient.get()
+        .uri("/prisoners/ABCXX123/money/transactions?startDate=ABD")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `should return 400 when endDate query is malformed`() {
+      webTestClient.get()
+        .uri("/prisoners/ABCXX123/money/transactions?endDate=ABD")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `should return 400 when pageNumber query is malformed`() {
+      webTestClient.get()
+        .uri("/prisoners/ABCXX123/money/transactions?pageNumber=ABD")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `should return 400 when pageSize query is malformed`() {
+      webTestClient.get()
+        .uri("/prisoners/ABCXX123/money/transactions?pageSize=ABD")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isBadRequest
     }
   }
 }
