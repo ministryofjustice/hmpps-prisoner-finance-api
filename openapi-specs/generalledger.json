@@ -6,7 +6,7 @@
       "name" : "HMPPS Digital Studio",
       "email" : "feedback@digital.justice.gov.uk"
     },
-    "version" : "2026-04-02"
+    "version" : "2026-04-09.386.270e258"
   },
   "servers" : [ {
     "url" : "https://prisoner-finance-general-ledger-api-dev.hmpps.service.justice.gov.uk",
@@ -1022,16 +1022,9 @@
           },
           "example" : "2025-12-25"
         }, {
-          "name" : "accountId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        }, {
           "name" : "pageNumber",
           "in" : "query",
+          "description" : "Filter statements from page number",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -1041,11 +1034,36 @@
         }, {
           "name" : "pageSize",
           "in" : "query",
+          "description" : "Sets the page size when returning the pages results",
           "required" : false,
           "schema" : {
             "type" : "integer",
             "format" : "int32",
             "minimum" : 1
+          }
+        }, {
+          "name" : "credit",
+          "in" : "query",
+          "description" : "Filter statements using the PostingType CR",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "debit",
+          "in" : "query",
+          "description" : "Filter statements using the PostingType DR",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "accountId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
           }
         } ],
         "responses" : {

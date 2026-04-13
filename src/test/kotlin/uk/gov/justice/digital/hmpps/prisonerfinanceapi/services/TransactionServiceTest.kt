@@ -35,11 +35,11 @@ class TransactionServiceTest {
     fun `Should return empty list if given an empty list`() {
       val prisonerId = UUID.randomUUID()
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)).thenReturn(
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25)).thenReturn(
         PagedResponseStatementEntryResponse(content = emptyList(), pageNumber = 1, pageSize = 25, totalElements = 0, totalPages = 1, isLastPage = true),
       )
 
-      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)
+      val response = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25)
       assertThat(response.content).isEmpty()
     }
 
@@ -84,9 +84,9 @@ class TransactionServiceTest {
       )
       val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = 2, totalPages = 1, isLastPage = true)
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)).thenReturn(statementPage)
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25)).thenReturn(statementPage)
 
-      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25).content
+      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25).content
 
       assertThat(responseContent).hasSize(2)
       assertThat(responseContent[0].description).isEqualTo(statementPageContents[0].description)
@@ -138,9 +138,9 @@ class TransactionServiceTest {
       )
       val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = 1, totalPages = 1, isLastPage = true)
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)).thenReturn(statementPage)
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25)).thenReturn(statementPage)
 
-      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25).content
+      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25).content
 
       assertThat(responseContent).hasSize(1)
       assertThat(responseContent[0].description).isEqualTo(statementPageContents[0].description)
@@ -173,10 +173,10 @@ class TransactionServiceTest {
 
       val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = 1, totalPages = 1, isLastPage = true)
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null)).thenReturn(statementPage)
+      whenever(generalLedgerApiClient.getStatementForAccountId(prisonerId, null, null, credit = true, debit = true)).thenReturn(statementPage)
 
       assertThatThrownBy {
-        transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, pageNumber = 1, pageSize = 25)
+        transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25)
       }.isInstanceOf(CustomException::class.java)
         .extracting("status")
         .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)

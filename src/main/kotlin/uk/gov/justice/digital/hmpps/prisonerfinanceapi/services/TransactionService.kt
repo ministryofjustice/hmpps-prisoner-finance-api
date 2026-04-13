@@ -19,10 +19,12 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
     accountId: UUID,
     startDate: LocalDate?,
     endDate: LocalDate?,
+    credit: Boolean,
+    debit: Boolean,
     pageNumber: Int,
     pageSize: Int,
   ): PagedPrisonerTransactionResponse {
-    val statementPage = generalLedgerApiClient.getStatementForAccountId(accountId, startDate, endDate, pageNumber, pageSize)
+    val statementPage = generalLedgerApiClient.getStatementForAccountId(accountId = accountId, startDate = startDate, endDate = endDate, credit = credit, debit = debit, pageNumber = pageNumber, pageSize = pageSize)
 
     val transactions = statementPage.content.map { statementEntryResponse ->
       val (credit, debit) = getCreditAndDebit(statementEntryResponse)
