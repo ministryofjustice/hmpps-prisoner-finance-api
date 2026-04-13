@@ -716,6 +716,213 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should default subaccount to null when it is not provided`() {
+      val accountRef = "A12345"
+      val accountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = accountRef,
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+
+      val statementPageContents = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
+          ),
+        ),
+      )
+
+      val page = PagedResponseStatementEntryResponse(
+        content = statementPageContents,
+        pageNumber = 5,
+        pageSize = 20,
+        totalElements = 81,
+        totalPages = 5,
+        isLastPage = true,
+      )
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, page)
+
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/transactions")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
+
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts/$accountId/statement"))
+          .withQueryParam("pageSize", equalTo("25"))
+          .withQueryParam("pageNumber", equalTo("1"))
+          .withQueryParam("credit", equalTo("false"))
+          .withQueryParam("debit", equalTo("false"))
+          .withoutQueryParam("subAccount"),
+      )
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts"))
+          .withQueryParam("reference", matching(accountRef)),
+      )
+    }
+
+    @Test
+    fun `should pass subaccount id to GL when it is provided`() {
+      val accountRef = "A12345"
+      val accountId = UUID.randomUUID()
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = accountRef,
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+
+      val subAccountResponse = SubAccountResponse(
+        reference = subAccountCashPrisoner.reference,
+        id = subAccountCashPrisoner.id,
+        createdAt = subAccountCashPrisoner.createdAt,
+        createdBy = subAccountCashPrisoner.createdBy,
+        parentAccountId = parentAccountPrisoner.id,
+      )
+
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId, listOf(subAccountResponse))
+
+      val statementPageContents = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
+          ),
+        ),
+      )
+
+      val page = PagedResponseStatementEntryResponse(
+        content = statementPageContents,
+        pageNumber = 5,
+        pageSize = 20,
+        totalElements = 81,
+        totalPages = 5,
+        isLastPage = true,
+      )
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, page, subAccountId = subAccountCashPrisoner.id.toString())
+
+      webTestClient.get()
+        .uri("/prisoners/$accountRef/money/transactions?subAccountReference=${subAccountCashPrisoner.reference}")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
+
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts/$accountId/statement"))
+          .withQueryParam("pageSize", equalTo("25"))
+          .withQueryParam("pageNumber", equalTo("1"))
+          .withQueryParam("credit", equalTo("false"))
+          .withQueryParam("debit", equalTo("false"))
+          .withQueryParam("subAccountId", equalTo(subAccountCashPrisoner.id.toString())),
+      )
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts"))
+          .withQueryParam("reference", matching(accountRef)),
+      )
+    }
+
+    @Test
+    fun `should respond with a 404 if the account in GL doesn't contain the subaccount reference`() {
+      val accountRef = "A12345"
+      val accountId = UUID.randomUUID()
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = accountRef,
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+
+      val subAccountResponse = SubAccountResponse(
+        reference = subAccountCashPrisoner.reference,
+        id = subAccountCashPrisoner.id,
+        createdAt = subAccountCashPrisoner.createdAt,
+        createdBy = subAccountCashPrisoner.createdBy,
+        parentAccountId = parentAccountPrisoner.id,
+      )
+
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId, listOf(subAccountResponse))
+
+      val statementPageContents = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
+          ),
+        ),
+      )
+
+      val page = PagedResponseStatementEntryResponse(
+        content = statementPageContents,
+        pageNumber = 5,
+        pageSize = 20,
+        totalElements = 81,
+        totalPages = 5,
+        isLastPage = true,
+      )
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, page, subAccountId = subAccountCashPrisoner.id.toString())
+
+      val error = webTestClient.get()
+        .uri("/prisoners/$accountRef/money/transactions?subAccountReference=INVALID_REFERENCE")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isNotFound()
+        .expectBody<ErrorResponse>().returnResult().responseBody!!
+
+      assertThat(error.userMessage).isEqualTo("Sub account not found")
+    }
+
+    @Test
     fun `should return 400 when credit query is malformed`() {
       webTestClient.get()
         .uri("/prisoners/ABCXX123/money/transactions?credit=ABD")

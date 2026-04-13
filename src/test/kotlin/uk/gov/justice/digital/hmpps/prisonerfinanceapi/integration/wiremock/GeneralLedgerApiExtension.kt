@@ -72,6 +72,7 @@ class GeneralLedgerApiMockServer :
     response: PagedResponseStatementEntryResponse,
     startDate: String = "",
     endDate: String = "",
+    subAccountId: String = "",
   ) {
     stubFor(
       get(
@@ -85,6 +86,11 @@ class GeneralLedgerApiMockServer :
         .apply {
           if (endDate.isNotBlank()) {
             withQueryParam("endDate", equalTo(endDate))
+          }
+        }
+        .apply {
+          if (subAccountId.isNotBlank()) {
+            withQueryParam("subAccountId", equalTo(subAccountId))
           }
         }
         .willReturn(
