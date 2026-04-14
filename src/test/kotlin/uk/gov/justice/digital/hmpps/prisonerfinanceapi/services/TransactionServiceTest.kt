@@ -35,16 +35,18 @@ class TransactionServiceTest {
     fun `Should return empty list if given an empty list`() {
       val prisonerId = UUID.randomUUID()
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(
-        accountId = prisonerId,
-        startDate = null,
-        endDate = null,
-        credit = true,
-        debit = true,
-        pageNumber = 1,
-        pageSize = 25,
-        subAccountId = null
-      )).thenReturn(
+      whenever(
+        generalLedgerApiClient.getStatementForAccountId(
+          accountId = prisonerId,
+          startDate = null,
+          endDate = null,
+          credit = true,
+          debit = true,
+          pageNumber = 1,
+          pageSize = 25,
+          subAccountId = null,
+        ),
+      ).thenReturn(
         PagedResponseStatementEntryResponse(content = emptyList(), pageNumber = 1, pageSize = 25, totalElements = 0, totalPages = 1, isLastPage = true),
       )
 
@@ -56,7 +58,7 @@ class TransactionServiceTest {
         debit = true,
         pageNumber = 1,
         pageSize = 25,
-        subAccountId = null
+        subAccountId = null,
       )
       assertThat(response.content).isEmpty()
     }
@@ -102,16 +104,18 @@ class TransactionServiceTest {
       )
       val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = 2, totalPages = 1, isLastPage = true)
 
-      whenever(generalLedgerApiClient.getStatementForAccountId(
-        accountId= prisonerId,
-        startDate= null,
-        endDate = null,
-        credit = true,
-        debit = true,
-        pageNumber = 1,
-        pageSize = 25,
-        subAccountId = null
-      )).thenReturn(statementPage)
+      whenever(
+        generalLedgerApiClient.getStatementForAccountId(
+          accountId = prisonerId,
+          startDate = null,
+          endDate = null,
+          credit = true,
+          debit = true,
+          pageNumber = 1,
+          pageSize = 25,
+          subAccountId = null,
+        ),
+      ).thenReturn(statementPage)
 
       val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25, subAccountId = null).content
 
