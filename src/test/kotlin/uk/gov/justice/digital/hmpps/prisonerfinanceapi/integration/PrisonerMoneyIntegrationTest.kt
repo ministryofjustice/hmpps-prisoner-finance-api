@@ -720,7 +720,10 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       val accountRef = "A12345"
       val accountId = UUID.randomUUID()
 
-      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = accountRef,
+        returnAccountId = accountId,
+      )
 
       val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
         reference = accountRef,
@@ -743,8 +746,8 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
           statementOppositePosting = listOf(
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
-              2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              amount = 2L,
+              type = StatementEntryOppositePostingsResponse.Type.DR,
             ),
           ),
         ),
@@ -758,7 +761,10 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         totalPages = 5,
         isLastPage = true,
       )
-      generalLedgerApi.stubGetStatementEntriesPage(accountId, page)
+      generalLedgerApi.stubGetStatementEntriesPage(
+        accountId = accountId,
+        response = page,
+      )
 
       webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions")
@@ -809,7 +815,11 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         parentAccountId = parentAccountPrisoner.id,
       )
 
-      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId, listOf(subAccountResponse))
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = accountRef,
+        returnAccountId = accountId,
+        subAccounts = listOf(subAccountResponse),
+      )
 
       val statementPageContents = listOf(
         serviceTestHelpers.createStatementEntryResponse(
@@ -819,8 +829,8 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
           statementOppositePosting = listOf(
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
-              2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              amount = 2L,
+              type = StatementEntryOppositePostingsResponse.Type.DR,
             ),
           ),
         ),
@@ -834,7 +844,11 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         totalPages = 5,
         isLastPage = true,
       )
-      generalLedgerApi.stubGetStatementEntriesPage(accountId, page, subAccountId = subAccountCashPrisoner.id.toString())
+      generalLedgerApi.stubGetStatementEntriesPage(
+        accountId = accountId,
+        response = page,
+        subAccountId = subAccountCashPrisoner.id.toString(),
+      )
 
       webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions?subAccountReference=${subAccountCashPrisoner.reference}")
@@ -885,7 +899,11 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         parentAccountId = parentAccountPrisoner.id,
       )
 
-      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId, listOf(subAccountResponse))
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = accountRef,
+        returnAccountId = accountId,
+        subAccounts = listOf(subAccountResponse),
+      )
 
       val statementPageContents = listOf(
         serviceTestHelpers.createStatementEntryResponse(
@@ -895,8 +913,8 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
           statementOppositePosting = listOf(
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
-              2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              amount = 2L,
+              type = StatementEntryOppositePostingsResponse.Type.DR,
             ),
           ),
         ),
@@ -910,7 +928,11 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
         totalPages = 5,
         isLastPage = true,
       )
-      generalLedgerApi.stubGetStatementEntriesPage(accountId, page, subAccountId = subAccountCashPrisoner.id.toString())
+      generalLedgerApi.stubGetStatementEntriesPage(
+        accountId = accountId,
+        response = page,
+        subAccountId = subAccountCashPrisoner.id.toString(),
+      )
 
       val error = webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions?subAccountReference=INVALID_REFERENCE")
