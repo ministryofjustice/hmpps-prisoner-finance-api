@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDate
+import java.util.UUID
 
 @Tag(name = "Prisoner money controller")
 @RestController
@@ -53,6 +54,7 @@ class PrisonerMoneyController(
       Parameter(name = "pageSize", description = "Sets the page size when returning the pages results"),
       Parameter(name = "credit", description = "Filter statements using the PostingType CR"),
       Parameter(name = "debit", description = "Filter statements using the PostingType DR"),
+      Parameter(name = "subAccountReference", description = "Filter statements using the sub account reference"),
     ],
   )
   @ApiResponses(
@@ -78,6 +80,11 @@ class PrisonerMoneyController(
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
+        responseCode = "404",
+        description = "Sub Account not found",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
         responseCode = "500",
         description = "Internal Server Error - An unexpected error occurred.",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
@@ -100,11 +107,17 @@ class PrisonerMoneyController(
     @RequestParam @Min(1) pageSize: Int = 25,
     @RequestParam(required = false) credit: Boolean = false,
     @RequestParam(required = false) debit: Boolean = false,
+    @RequestParam(required = false) subAccountReference: String?,
   ): ResponseEntity<PagedPrisonerTransactionResponse> {
     val account = accountService.getAccountByReference(prisonNumber)
-
     if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
 
+    var subAccountId: UUID? = null
+
+    if (!subAccountReference.isNullOrBlank()) {
+      subAccountId = account.subAccounts.firstOrNull({ acc -> acc.reference == subAccountReference.uppercase() })?.id
+        ?: throw CustomException(status = HttpStatus.NOT_FOUND, message = "Sub account not found")
+    }
     val transactions = transactionService.getPrisonerTransactionsByAccountId(
       accountId = account.id,
       startDate = startDate,
@@ -113,6 +126,7 @@ class PrisonerMoneyController(
       debit = debit,
       pageNumber = pageNumber,
       pageSize = pageSize,
+      subAccountId = subAccountId,
     )
 
     return ResponseEntity.ok(transactions)

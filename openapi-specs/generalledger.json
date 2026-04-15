@@ -6,7 +6,7 @@
       "name" : "HMPPS Digital Studio",
       "email" : "feedback@digital.justice.gov.uk"
     },
-    "version" : "2026-04-09.386.270e258"
+    "version" : "2026-04-13.390.ed02d94"
   },
   "servers" : [ {
     "url" : "https://prisoner-finance-general-ledger-api-dev.hmpps.service.justice.gov.uk",
@@ -1040,6 +1040,15 @@
             "type" : "integer",
             "format" : "int32",
             "minimum" : 1
+          }
+        }, {
+          "name" : "subAccountId",
+          "in" : "query",
+          "description" : "Filter statements by sub-account id (UUID format)",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
           }
         }, {
           "name" : "credit",
