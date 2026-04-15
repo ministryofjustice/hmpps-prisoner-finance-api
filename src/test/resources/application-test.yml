@@ -12,7 +12,7 @@ springdoc:
   api-docs:
     enabled: true
   swagger-ui:
-    version: 5.32.1
+    version: 5.32.2
     enabled: true
   packages-to-scan: uk.gov.justice.digital.hmpps.prisonerfinanceapi
   packages-to-exclude:
