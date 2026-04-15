@@ -6,3 +6,9 @@ general-ledger-api:
   client:
     id: hmpps-prisoner-finance-general-ledger-api
     secret: clientsecret
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
