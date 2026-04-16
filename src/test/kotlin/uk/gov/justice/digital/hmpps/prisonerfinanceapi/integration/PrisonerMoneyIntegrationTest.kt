@@ -945,6 +945,25 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 400 Page requested is out of range when returned by GL`() {
+      val accountRef = "ABCXX123"
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = accountRef,
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef, parentAccountPrisoner.id)
+      generalLedgerApi.stubGetStatementEntriesPageReturnsPageOutOfBoundError(parentAccountPrisoner.id)
+      val error = webTestClient.get()
+        .uri("/prisoners/$accountRef/money/transactions?page=9999")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isBadRequest
+        .expectBody<ErrorResponse>().returnResult().responseBody!!
+
+      assertThat(error.userMessage).isEqualTo("Page requested is out of range")
+    }
+
+    @Test
     fun `should return 400 when credit query is malformed`() {
       webTestClient.get()
         .uri("/prisoners/ABCXX123/money/transactions?credit=ABD")

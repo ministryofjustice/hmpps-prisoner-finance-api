@@ -67,6 +67,31 @@ class GeneralLedgerApiMockServer :
     )
   }
 
+  fun stubGetStatementEntriesPageReturnsPageOutOfBoundError(
+    accountId: UUID,
+  ) {
+    stubFor(
+      get(
+        urlPathEqualTo("/accounts/$accountId/statement"),
+      ).willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(
+            """
+              {
+                "status": 400,
+                "errorCode": "Bad Request",
+                "userMessage": "Page requested is out of range",
+                "developerMessage": "Page requested is out of range",
+                "moreInfo": "Page requested is out of range"
+              }
+            """.trimIndent(),
+          )
+          .withStatus(400),
+      ),
+    )
+  }
+
   fun stubGetStatementEntriesPage(
     accountId: UUID,
     response: PagedResponseStatementEntryResponse,
