@@ -73,8 +73,25 @@ class GeneralLedgerApiClient(
 
   fun getStatementForAccountId(accountId: UUID, startDate: LocalDate?, endDate: LocalDate?, credit: Boolean, debit: Boolean, pageNumber: Int = 1, pageSize: Int = 25, subAccountId: UUID?): PagedResponseStatementEntryResponse = handleExceptions(
     {
-      statementControllerApi.getStatementForAccountId(accountId, startDate, endDate, pageNumber, pageSize, credit = credit, debit = debit, subAccountId = subAccountId).block()
-        ?: throw IllegalStateException("Received null response when retrieving a list of statements for account $accountId")
+      try {
+        statementControllerApi.getStatementForAccountId(
+          accountId,
+          startDate,
+          endDate,
+          pageNumber,
+          pageSize,
+          credit = credit,
+          debit = debit,
+          subAccountId = subAccountId,
+        ).block()
+          ?: throw IllegalStateException("Received null response when retrieving a list of statements for account $accountId")
+      } catch (e: WebClientResponseException) {
+        if (e.statusCode == HttpStatus.BAD_REQUEST && e.responseBodyAsString.contains("Page requested is out of range")) {
+          throw CustomException("Page requested is out of range", HttpStatus.BAD_REQUEST, e)
+        } else {
+          throw e
+        }
+      }
     },
   )
 }
