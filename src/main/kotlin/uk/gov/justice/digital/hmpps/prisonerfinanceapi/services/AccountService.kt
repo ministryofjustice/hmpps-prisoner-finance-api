@@ -10,7 +10,7 @@ import java.util.UUID
 
 @Service
 class AccountService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
-  fun getAccountByReference(prisonerNumber: String): AccountResponse? = generalLedgerApiClient.getAccountByRef(prisonerNumber).firstOrNull()
+  fun getAccountByReference(accountReference: String): AccountResponse? = generalLedgerApiClient.getAccountByRef(accountReference).firstOrNull()
 
   fun getAccountBalance(accountUUID: UUID): AccountBalanceResponse = generalLedgerApiClient.getAccountBalance(accountUUID)
 
