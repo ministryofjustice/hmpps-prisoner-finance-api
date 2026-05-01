@@ -74,7 +74,9 @@ class TransactionIntegrationTest : IntegrationTestBase() {
 
       val responseBody = webTestClient.post()
         .uri("/transaction")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
+//        TODO: We want to swap this over after the new role is added to UI
+//        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .bodyValue(uiFormRequest)
         .exchange()
         .expectStatus().isOk
@@ -144,7 +146,9 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       webTestClient.post()
         .uri("/transaction")
         .bodyValue(uiFormRequest)
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .headers(setAuthorisation(roles = listOf("WRONG_ROLE")))
+//        TODO: We want to swap this over after the new role is added to UI
+//        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
         .expectStatus().isForbidden
     }

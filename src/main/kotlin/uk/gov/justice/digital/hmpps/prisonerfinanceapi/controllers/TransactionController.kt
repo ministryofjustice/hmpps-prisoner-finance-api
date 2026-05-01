@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
@@ -66,8 +67,11 @@ class TransactionController(private val transactionService: TransactionService) 
       ),
     ],
   )
-  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RW])
-  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RW')")
+//        TODO: We want to swap this over after the new role is added to UI
+//  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RW])
+//  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RW')")
+  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO])
+  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RW','$ROLE_PRISONER_FINANCE__PROFILE__RO')")
   @PostMapping("/transaction")
   fun createTransaction(@RequestBody @Valid payload: CreateTransactionFormRequest): ResponseEntity<TransactionResponse> {
     val createdTransaction = transactionService.createTransaction(payload)
