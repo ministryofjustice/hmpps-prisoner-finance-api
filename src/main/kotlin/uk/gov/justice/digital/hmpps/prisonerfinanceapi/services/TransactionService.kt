@@ -5,10 +5,15 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PagedPrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
+import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
@@ -69,5 +74,38 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
     } else {
       return Pair(0, statementEntryResponse.amount)
     }
+  }
+
+  fun createTransaction(createTransactionFormRequest: CreateTransactionFormRequest): TransactionResponse? {
+    val idempotencyKey = UUID.randomUUID()
+    val txReference = UUID.randomUUID().toString()
+
+    val postings = listOf(
+      CreatePostingRequest(
+        subAccountId = createTransactionFormRequest.debitSubAccountId,
+        type = CreatePostingRequest.Type.DR,
+        amount = createTransactionFormRequest.amount,
+        entrySequence = 1,
+      ),
+      CreatePostingRequest(
+        subAccountId = createTransactionFormRequest.creditSubAccountId,
+        type = CreatePostingRequest.Type.CR,
+        amount = createTransactionFormRequest.amount,
+        entrySequence = 2,
+      ),
+    )
+
+    val createTransactionRequest = CreateTransactionRequest(
+      reference = txReference,
+      description = createTransactionFormRequest.description,
+      timestamp = Instant.now(),
+      amount = createTransactionFormRequest.amount,
+      postings = postings,
+      entrySequence = 1,
+    )
+
+    val createdTransaction = generalLedgerApiClient.postTransaction(idempotencyKey, createTransactionRequest)
+
+    return createdTransaction
   }
 }

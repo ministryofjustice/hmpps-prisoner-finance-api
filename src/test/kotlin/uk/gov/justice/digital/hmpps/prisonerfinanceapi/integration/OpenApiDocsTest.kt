@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
+import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.parser.OpenAPIV3Parser
 import net.minidev.json.JSONArray
 import org.assertj.core.api.Assertions.assertThat
@@ -10,6 +11,7 @@ import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.MediaType
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlin.collections.forEach
 
 class OpenApiDocsTest : IntegrationTestBase() {
   @LocalServerPort
@@ -71,14 +73,28 @@ class OpenApiDocsTest : IntegrationTestBase() {
     // We therefore need to grab all the valid security requirements and check that each path only contains those items
     val securityRequirements = result.openAPI.security.flatMap { it.keys }
     result.openAPI.paths.forEach { pathItem ->
-      assertThat(pathItem.value.get.security.flatMap { it.keys }).isSubsetOf(securityRequirements)
+
+      val operations: List<Operation> = listOfNotNull(
+        pathItem.value.get,
+        pathItem.value.put,
+        pathItem.value.post,
+        pathItem.value.delete,
+        pathItem.value.options,
+        pathItem.value.head,
+        pathItem.value.patch,
+        pathItem.value.trace,
+      )
+
+      operations.forEach { operation ->
+        assertThat(operation.security.flatMap { it.keys }).isSubsetOf(securityRequirements)
+      }
     }
   }
 
   @ParameterizedTest
   @CsvSource(
     value = [
-      "bearer-jwt, ROLE_PRISONER_FINANCE__PROFILE__RO",
+      "bearer-jwt, ROLE_PRISONER_FINANCE__PROFILE__RW",
     ],
   )
   fun `the security scheme is setup for bearer tokens`(key: String, role: String) {
@@ -94,7 +110,12 @@ class OpenApiDocsTest : IntegrationTestBase() {
         assertThat(it).contains(role)
       }
       .jsonPath("$.components.securitySchemes.$key.bearerFormat").isEqualTo("JWT")
-      .jsonPath("$.security[0].$key").isEqualTo(JSONArray())
+      .jsonPath("$.security[0].$key").isEqualTo(
+        JSONArray().apply {
+          this.add("read")
+          this.add("write")
+        },
+      )
   }
 
   @Test

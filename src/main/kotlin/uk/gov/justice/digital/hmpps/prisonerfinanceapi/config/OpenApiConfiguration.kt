@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 const val ROLE_PRISONER_FINANCE__PROFILE__RO = "ROLE_PRISONER_FINANCE__PROFILE__RO"
-
+const val ROLE_PRISONER_FINANCE__PROFILE__RW = "ROLE_PRISONER_FINANCE__PROFILE__RW"
 const val TAG_PRISONER_FINANCE = "Prisoner Finance"
 
 @Configuration
@@ -28,10 +28,10 @@ class OpenApiConfiguration(buildProperties: BuildProperties) {
       Components()
         .addSecuritySchemes(
           "bearer-jwt",
-          SecurityScheme().addBearerJwtRequirement(ROLE_PRISONER_FINANCE__PROFILE__RO),
+          SecurityScheme().addBearerJwtRequirement(ROLE_PRISONER_FINANCE__PROFILE__RW),
         ),
     )
-    .addSecurityItem(SecurityRequirement().addList("bearer-jwt"))
+    .addSecurityItem(SecurityRequirement().addList("bearer-jwt", listOf("read", "write")))
     .tags(apiTags())
 
   private fun apiInfo(): Info = Info()
@@ -52,6 +52,8 @@ class OpenApiConfiguration(buildProperties: BuildProperties) {
     |Integrations should request one of the following roles based on their needs:
     |
     |* `ROLE_PRISONER_FINANCE__PROFILE__RO`: Grants **read only access**.
+    |* `ROLE_PRISONER_FINANCE__PROFILE__RW`: Grants **read and write access**.
+
   """.trimMargin()
 
   private fun apiContact(): Contact = Contact()
