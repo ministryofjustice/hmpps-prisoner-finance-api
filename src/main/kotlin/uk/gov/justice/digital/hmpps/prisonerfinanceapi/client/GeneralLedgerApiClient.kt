@@ -28,6 +28,7 @@ class GeneralLedgerApiClient(
 
   private fun <T> handleExceptions(
     block: () -> T,
+    message400: String = "Bad Request from General Ledger",
     message404: String = "Not found",
     message502: String = "Bad Gateway - General Ledger Unreachable or throwing an error",
     message500: String = "Unexpected Error",
@@ -35,12 +36,11 @@ class GeneralLedgerApiClient(
     try {
       return block()
     } catch (e: WebClientResponseException) {
-      if (e.statusCode == HttpStatus.NOT_FOUND) {
-        throw CustomException(message404, HttpStatus.NOT_FOUND, e)
-      } else if (e.statusCode == HttpStatus.INTERNAL_SERVER_ERROR) {
-        throw CustomException(message502, HttpStatus.BAD_GATEWAY, e)
-      } else {
-        throw CustomException(message500, HttpStatus.INTERNAL_SERVER_ERROR, e)
+      when (e.statusCode) {
+        HttpStatus.BAD_REQUEST -> throw CustomException(message400, HttpStatus.BAD_REQUEST, e)
+        HttpStatus.NOT_FOUND -> throw CustomException(message404, HttpStatus.NOT_FOUND, e)
+        HttpStatus.INTERNAL_SERVER_ERROR -> throw CustomException(message502, HttpStatus.BAD_GATEWAY, e)
+        else -> throw CustomException(message500, HttpStatus.INTERNAL_SERVER_ERROR, e)
       }
     }
   }
@@ -103,8 +103,8 @@ class GeneralLedgerApiClient(
         transactionApi.postTransaction(idempotencyKey, createTransactionRequest).block()
           ?: throw IllegalStateException("Received null response when posting a transaction")
       } catch (e: WebClientResponseException) {
-        println(e)
-      } as TransactionResponse
+        throw e
+      }
     },
   )
 }

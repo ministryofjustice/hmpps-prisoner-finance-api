@@ -7,33 +7,37 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.http.HttpStatus
+import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RW
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
-@Tag(name = "Accounts controller")
+@Tag(name = "Transaction controller")
 @RestController
-class AccountsController(val accountService: AccountService) {
+class TransactionController(private val transactionService: TransactionService) {
 
   @Operation(
-    summary = "Get an account by reference",
-    description = "Returns an account by reference",
+    summary = "Create a transaction",
+    description = "Returns the created transaction from General Ledger",
   )
   @ApiResponses(
     value = [
       ApiResponse(
         responseCode = "200",
-        description = "Retrieved the account",
-        content = [Content(mediaType = "application/json", schema = Schema(implementation = AccountResponse::class))],
+        description = "Transaction Created",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = TransactionResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -47,7 +51,7 @@ class AccountsController(val accountService: AccountService) {
       ),
       ApiResponse(
         responseCode = "404",
-        description = "Account not found",
+        description = "Sub-Account not found",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
@@ -62,15 +66,11 @@ class AccountsController(val accountService: AccountService) {
       ),
     ],
   )
-  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO])
-  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RO','$ROLE_PRISONER_FINANCE__PROFILE__RW')")
-  @GetMapping("/accounts/{accountReference}")
-  fun getAccountByReference(
-    @PathVariable accountReference: String,
-  ): ResponseEntity<AccountResponse> {
-    val account = accountService.getAccountByReference(accountReference)
-      ?: throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
-
-    return ResponseEntity.ok(account)
+  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RW])
+  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RW')")
+  @PostMapping("/transaction")
+  fun createTransaction(@RequestBody @Valid payload: CreateTransactionFormRequest): ResponseEntity<TransactionResponse> {
+    val createdTransaction = transactionService.createTransaction(payload)
+    return ResponseEntity.ok(createdTransaction)
   }
 }
