@@ -10,9 +10,11 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.Sub
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.TransactionControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import java.time.LocalDate
 import java.util.UUID
 
@@ -92,6 +94,17 @@ class GeneralLedgerApiClient(
           throw e
         }
       }
+    },
+  )
+
+  fun postTransaction(idempotencyKey: UUID, createTransactionRequest: CreateTransactionRequest): TransactionResponse = handleExceptions(
+    {
+      try {
+        transactionApi.postTransaction(idempotencyKey, createTransactionRequest).block()
+          ?: throw IllegalStateException("Received null response when posting a transaction")
+      } catch (e: WebClientResponseException) {
+        println(e)
+      } as TransactionResponse
     },
   )
 }
