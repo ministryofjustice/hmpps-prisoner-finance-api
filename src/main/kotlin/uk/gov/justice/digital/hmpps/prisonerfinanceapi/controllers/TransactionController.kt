@@ -68,7 +68,7 @@ class TransactionController(private val transactionService: TransactionService) 
   )
   @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RW])
   @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RW')")
-  @PostMapping("/transaction")
+  @PostMapping("/transactions")
   fun createTransaction(@RequestBody @Valid payload: CreateTransactionFormRequest): ResponseEntity<TransactionResponse> {
     val createdTransaction = transactionService.createTransaction(payload)
     return ResponseEntity.status(201).body(createdTransaction)

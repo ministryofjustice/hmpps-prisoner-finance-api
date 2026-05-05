@@ -73,7 +73,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       )
 
       val responseBody = webTestClient.post()
-        .uri("/transaction")
+        .uri("/transactions")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
         .bodyValue(uiFormRequest)
         .exchange()
@@ -96,7 +96,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       )
 
       webTestClient.post()
-        .uri("/transaction")
+        .uri("/transactions")
         .bodyValue(uiFormRequest)
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
         .exchange()
@@ -120,7 +120,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       generalLedgerApi.stubPostTransactionBadRequest()
 
       webTestClient.post()
-        .uri("/transaction")
+        .uri("/transactions")
         .bodyValue(uiFormRequest)
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
         .exchange()
@@ -142,7 +142,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       )
 
       webTestClient.post()
-        .uri("/transaction")
+        .uri("/transactions")
         .bodyValue(uiFormRequest)
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .exchange()
@@ -190,7 +190,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       generalLedgerApi.stubAnyRequestThrows500()
 
       webTestClient.post()
-        .uri("/transaction")
+        .uri("/transactions")
         .bodyValue(uiFormRequest)
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
         .exchange()
