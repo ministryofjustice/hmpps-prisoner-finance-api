@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.HmppsAuthApiExtension
@@ -37,8 +38,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
   @Nested
   inner class PrisonerSubAccountBalance {
-    @Test
-    fun `should return 200 and sub account balance when sent a valid account reference`() {
+    @ParameterizedTest
+    @CsvSource(ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO)
+    fun `should return 200 and sub account balance when sent a valid account reference`(role: String) {
       val accountId = UUID.randomUUID()
       val subAccountId = UUID.randomUUID()
       val accountRef = "AE123456"
@@ -62,7 +64,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/$accountRef/money/balance/$subAccountRef")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .headers(setAuthorisation(roles = listOf(role)))
         .exchange()
         .expectStatus().isOk
         .expectBody<SubAccountBalanceResponse>()
@@ -145,8 +147,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
   @Nested
   inner class PrisonerAccountBalance {
-    @Test
-    fun `should return 200 and account balance when sent a valid account reference`() {
+    @ParameterizedTest
+    @CsvSource(ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO)
+    fun `should return 200 and account balance when sent a valid account reference`(role: String) {
       val accountId = UUID.randomUUID()
       val accountRef = "AE123456"
       val amount = 1000L
@@ -156,7 +159,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/$accountRef/money/balance")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .headers(setAuthorisation(roles = listOf(role)))
         .exchange()
         .expectStatus().isOk
         .expectBody<AccountBalanceResponse>()
@@ -215,8 +218,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
   @Nested
   inner class PrisonerTransactions {
-    @Test
-    fun `return a empty list of transactions when sent a valid account reference with no transactions`() {
+    @ParameterizedTest
+    @CsvSource(ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO)
+    fun `return a empty list of transactions when sent a valid account reference with no transactions`(role: String) {
       val accountRef = "A12345"
       val accountId = UUID.randomUUID()
 
@@ -236,7 +240,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions?startDate=$startDate&endDate=$endDate")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .headers(setAuthorisation(roles = listOf(role)))
         .exchange()
         .expectStatus().isOk()
         .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
@@ -256,8 +260,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    @Test
-    fun `return a list of prison to prisoner transactions when sent a valid account reference`() {
+    @ParameterizedTest
+    @CsvSource(ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO)
+    fun `return a list of prison to prisoner transactions when sent a valid account reference`(role: String) {
       val accountId = UUID.randomUUID()
       val accountRef = "AE123456"
 
@@ -305,7 +310,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/$accountRef/money/transactions")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .headers(setAuthorisation(roles = listOf(role)))
         .exchange()
         .expectStatus().isOk
         .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
@@ -329,8 +334,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    @Test
-    fun `return a list of prisoner to prisoner transactions when sent a valid account reference`() {
+    @ParameterizedTest
+    @CsvSource(ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO)
+    fun `return a list of prisoner to prisoner transactions when sent a valid account reference`(role: String) {
       val accountId = UUID.randomUUID()
 
       val parentAccount = serviceTestHelpers.createParentAccountResponse(
@@ -382,7 +388,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
 
       val responseBody = webTestClient.get()
         .uri("/prisoners/${parentAccount.reference}/money/transactions")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .headers(setAuthorisation(roles = listOf(role)))
         .exchange()
         .expectStatus().isOk
         .expectBody<PagedPrisonerTransactionResponse>()
@@ -417,8 +423,9 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    @Test
-    fun `Should throw custom exception internal server error when no opposite postings are provided`() {
+    @ParameterizedTest
+    @CsvSource(ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO)
+    fun `Should throw custom exception internal server error when no opposite postings are provided`(role: String) {
       val accountId = UUID.randomUUID()
 
       val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
@@ -455,7 +462,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
       val exception =
         webTestClient.get()
           .uri("/prisoners/${parentAccountPrisoner.reference}/money/transactions")
-          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+          .headers(setAuthorisation(roles = listOf(role)))
           .exchange()
           .expectStatus().is5xxServerError
           .expectBody<ErrorResponse>()
