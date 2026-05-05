@@ -79,7 +79,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
         .bodyValue(uiFormRequest)
         .exchange()
-        .expectStatus().isOk
+        .expectStatus().isCreated
         .expectBody<TransactionResponse>()
         .returnResult().responseBody!!
 

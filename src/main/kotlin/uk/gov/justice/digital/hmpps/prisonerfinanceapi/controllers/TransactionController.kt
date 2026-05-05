@@ -31,7 +31,7 @@ class TransactionController(private val transactionService: TransactionService) 
   @ApiResponses(
     value = [
       ApiResponse(
-        responseCode = "200",
+        responseCode = "201",
         description = "Transaction Created",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = TransactionResponse::class))],
       ),
@@ -75,6 +75,6 @@ class TransactionController(private val transactionService: TransactionService) 
   @PostMapping("/transaction")
   fun createTransaction(@RequestBody @Valid payload: CreateTransactionFormRequest): ResponseEntity<TransactionResponse> {
     val createdTransaction = transactionService.createTransaction(payload)
-    return ResponseEntity.ok(createdTransaction)
+    return ResponseEntity.status(201).body(createdTransaction)
   }
 }
