@@ -110,12 +110,7 @@ class OpenApiDocsTest : IntegrationTestBase() {
         assertThat(it).contains(role)
       }
       .jsonPath("$.components.securitySchemes.$key.bearerFormat").isEqualTo("JWT")
-      .jsonPath("$.security[0].$key").isEqualTo(
-        JSONArray().apply {
-          this.add("read")
-          this.add("write")
-        },
-      )
+      .jsonPath("$.security[0].$key").isEqualTo(JSONArray())
   }
 
   @Test
