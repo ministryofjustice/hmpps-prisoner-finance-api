@@ -8,15 +8,23 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.whenever
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
+import java.time.Instant
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -211,6 +219,96 @@ class TransactionServiceTest {
       }.isInstanceOf(CustomException::class.java)
         .extracting("status")
         .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+  }
+
+  @Nested
+  inner class CreateTransaction {
+    @Test
+    fun `Should call the general ledger and return the transaction id`() {
+      val creditSubAccountId = UUID.randomUUID()
+      val debitSubAccountId = UUID.randomUUID()
+
+      val createTransactionFormRequest = CreateTransactionFormRequest(
+        creditSubAccountId = creditSubAccountId,
+        debitSubAccountId = debitSubAccountId,
+        amount = 2L,
+        description = "description",
+      )
+
+      val postings = listOf(
+        CreatePostingRequest(
+          subAccountId = debitSubAccountId,
+          type = CreatePostingRequest.Type.DR,
+          amount = 2L,
+          entrySequence = 1,
+        ),
+        CreatePostingRequest(
+          subAccountId = creditSubAccountId,
+          type = CreatePostingRequest.Type.CR,
+          amount = 2L,
+          entrySequence = 2,
+        ),
+      )
+
+      val postingsResponse = listOf(
+        PostingResponse(
+          id = UUID.randomUUID(),
+          subAccountID = debitSubAccountId,
+          type = PostingResponse.Type.DR,
+          amount = 2L,
+          createdBy = "",
+          createdAt = Instant.now(),
+        ),
+        PostingResponse(
+          id = UUID.randomUUID(),
+          subAccountID = creditSubAccountId,
+          type = PostingResponse.Type.CR,
+          amount = 2L,
+          createdBy = "",
+          createdAt = Instant.now(),
+        ),
+      )
+
+      val transactionReference = UUID.randomUUID().toString()
+
+      val transactionResponse = TransactionResponse(
+        id = UUID.randomUUID(),
+        createdBy = "",
+        createdAt = Instant.now(),
+        reference = transactionReference,
+        description = createTransactionFormRequest.description,
+        timestamp = Instant.now(),
+        amount = 2L,
+        postings = postingsResponse,
+      )
+
+      whenever(
+        generalLedgerApiClient.postTransaction(
+          idempotencyKey = any(),
+          createTransactionRequest = argThat<CreateTransactionRequest> { request ->
+
+            val referenceIsValidUUID = try {
+              UUID.fromString(request.reference)
+              true
+            } catch (_: IllegalArgumentException) {
+              false
+            }
+
+            request.description == createTransactionFormRequest.description &&
+              request.amount == createTransactionFormRequest.amount &&
+              request.postings == postings &&
+              referenceIsValidUUID
+          },
+        ),
+      ).thenReturn(transactionResponse)
+
+      val createdTransaction = transactionService.createTransaction(createTransactionFormRequest)
+
+      assertThat(createdTransaction?.amount).isEqualTo(transactionResponse.amount)
+      assertThat(createdTransaction?.description).isEqualTo(transactionResponse.description)
+      assertThat(createdTransaction?.postings).isEqualTo(transactionResponse.postings)
+      assertThat(createdTransaction?.reference).isEqualTo(transactionResponse.reference)
     }
   }
 }

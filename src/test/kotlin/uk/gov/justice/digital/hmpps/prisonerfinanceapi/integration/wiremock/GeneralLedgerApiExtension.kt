@@ -7,6 +7,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.any
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier
@@ -22,6 +23,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Page
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import java.time.Instant
 import java.util.UUID
 
@@ -246,6 +248,43 @@ class GeneralLedgerApiMockServer :
               ),
             )
             .withStatus(200),
+        ),
+    )
+  }
+
+  fun stubPostTransaction(payload: TransactionResponse) {
+    generalLedgerApi.stubFor(
+      post("/transactions")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              mapper.writeValueAsString(
+                payload,
+              ),
+            ).withStatus(200),
+        ),
+    )
+  }
+
+  fun stubPostTransactionSubAccountIDNotFound() {
+    generalLedgerApi.stubFor(
+      post("/transactions")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withStatus(404),
+        ),
+    )
+  }
+
+  fun stubPostTransactionBadRequest() {
+    generalLedgerApi.stubFor(
+      post("/transactions")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withStatus(400),
         ),
     )
   }
