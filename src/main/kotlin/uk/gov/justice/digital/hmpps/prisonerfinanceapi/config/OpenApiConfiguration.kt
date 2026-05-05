@@ -31,7 +31,7 @@ class OpenApiConfiguration(buildProperties: BuildProperties) {
           SecurityScheme().addBearerJwtRequirement(ROLE_PRISONER_FINANCE__PROFILE__RW),
         ),
     )
-    .addSecurityItem(SecurityRequirement().addList("bearer-jwt", listOf("read", "write")))
+    .addSecurityItem(SecurityRequirement().addList("bearer-jwt", emptyList()))
     .tags(apiTags())
 
   private fun apiInfo(): Info = Info()
