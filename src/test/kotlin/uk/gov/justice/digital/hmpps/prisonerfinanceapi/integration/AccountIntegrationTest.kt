@@ -4,9 +4,12 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RO
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.HmppsAuthApiExtension
@@ -20,8 +23,9 @@ class AccountIntegrationTest : IntegrationTestBase() {
 
   @Nested
   inner class GetAccountByRef {
-    @Test
-    fun `Should return 200 and an account with its associated subaccounts`() {
+    @ParameterizedTest
+    @CsvSource(ROLE_PRISONER_FINANCE__PROFILE__RW, ROLE_PRISONER_FINANCE__PROFILE__RO)
+    fun `Should return 200 and an account with its associated subaccounts`(role: String) {
       val accountId = UUID.randomUUID()
       val subAccountId = UUID.randomUUID()
       val accountRef = "AE123456"
@@ -43,7 +47,7 @@ class AccountIntegrationTest : IntegrationTestBase() {
 
       val responseBody = webTestClient.get()
         .uri("/accounts/$accountRef")
-        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .headers(setAuthorisation(roles = listOf(role)))
         .exchange()
         .expectStatus().isOk
         .expectBody<AccountResponse>()
