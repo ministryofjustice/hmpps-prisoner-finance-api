@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Tran
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PagedPrisonerTransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.response.PrisonerTransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.utils.toPence
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -84,13 +85,13 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
       CreatePostingRequest(
         subAccountId = createTransactionFormRequest.debitSubAccountId,
         type = CreatePostingRequest.Type.DR,
-        amount = createTransactionFormRequest.amount,
+        amount = createTransactionFormRequest.amount.toPence(),
         entrySequence = 1,
       ),
       CreatePostingRequest(
         subAccountId = createTransactionFormRequest.creditSubAccountId,
         type = CreatePostingRequest.Type.CR,
-        amount = createTransactionFormRequest.amount,
+        amount = createTransactionFormRequest.amount.toPence(),
         entrySequence = 2,
       ),
     )
@@ -99,7 +100,7 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
       reference = txReference,
       description = createTransactionFormRequest.description,
       timestamp = Instant.now(),
-      amount = createTransactionFormRequest.amount,
+      amount = createTransactionFormRequest.amount.toPence(),
       postings = postings,
       entrySequence = 1,
     )

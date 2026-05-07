@@ -24,6 +24,8 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Stat
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.ServiceTestHelpers
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.utils.toPence
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -232,7 +234,7 @@ class TransactionServiceTest {
       val createTransactionFormRequest = CreateTransactionFormRequest(
         creditSubAccountId = creditSubAccountId,
         debitSubAccountId = debitSubAccountId,
-        amount = 2L,
+        amount = BigDecimal("0.02"),
         description = "description",
       )
 
@@ -296,7 +298,7 @@ class TransactionServiceTest {
             }
 
             request.description == createTransactionFormRequest.description &&
-              request.amount == createTransactionFormRequest.amount &&
+              request.amount == createTransactionFormRequest.amount.toPence() &&
               request.postings == postings &&
               referenceIsValidUUID
           },

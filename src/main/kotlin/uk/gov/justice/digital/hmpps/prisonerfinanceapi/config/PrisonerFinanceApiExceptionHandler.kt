@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
@@ -81,6 +82,22 @@ class PrisonerFinanceApiExceptionHandler {
           developerMessage = if (envIsProd) null else e.message,
         ),
       ).also { log.info("MethodArgumentTypeMismatchException: {}", e.message) }
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException::class)
+  fun handleMethodArgumentNotValidException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
+    val paramName = e.fieldErrors.firstOrNull()?.field
+    val userMessage = "Parameter '$paramName' is invalid"
+
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST,
+          userMessage = userMessage,
+          developerMessage = if (envIsProd) null else e.message,
+        ),
+      ).also { log.info("handleMethodArgumentNotValidException: {}", e.message) }
   }
 
   @ExceptionHandler(CustomException::class)

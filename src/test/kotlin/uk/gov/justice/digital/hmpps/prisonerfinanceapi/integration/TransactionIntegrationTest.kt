@@ -14,6 +14,8 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Hmpp
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.utils.toPence
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -61,10 +63,10 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     fun `Should return 200 and the transaction id`() {
       val creditSubAccountId = UUID.randomUUID()
       val debitSubAccountId = UUID.randomUUID()
-      val amount = 5L
+      val amount = BigDecimal("5.00")
       val description = "TEST"
 
-      val stubbedTransactionResponse = stubPostTransaction(creditSubAccountId, debitSubAccountId, amount, description)
+      val stubbedTransactionResponse = stubPostTransaction(creditSubAccountId, debitSubAccountId, amount.toPence(), description)
       val uiFormRequest = CreateTransactionFormRequest(
         creditSubAccountId = creditSubAccountId,
         debitSubAccountId = debitSubAccountId,
@@ -84,6 +86,23 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       assertThat(responseBody).isEqualTo(
         stubbedTransactionResponse,
       )
+    }
+
+    @Test
+    fun `Should return 400 if the transaction amount has more than 2 decimal places`() {
+      val uiFormRequest = mapOf(
+        "creditSubAccountId" to UUID.randomUUID(),
+        "debitSubAccountId" to UUID.randomUUID(),
+        "amount" to "10.9999",
+        "description" to "TEST",
+      )
+
+      webTestClient.post()
+        .uri("/transactions")
+        .bodyValue(uiFormRequest)
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
+        .exchange()
+        .expectStatus().isBadRequest
     }
 
     @Test
@@ -131,7 +150,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     fun `Should return 403 Forbidden if the user does not have the correct role`() {
       val creditSubAccountId = UUID.randomUUID()
       val debitSubAccountId = UUID.randomUUID()
-      val amount = 5L
+      val amount = BigDecimal("5.00")
       val description = "TEST"
 
       val uiFormRequest = CreateTransactionFormRequest(
@@ -153,7 +172,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     fun `Should return 404 if the account does not exist`() {
       val creditSubAccountId = UUID.randomUUID()
       val debitSubAccountId = UUID.randomUUID()
-      val amount = 5L
+      val amount = BigDecimal("5.00")
       val description = "TEST"
 
       val uiFormRequest = CreateTransactionFormRequest(
@@ -177,7 +196,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
     fun `Should return 502 if General Ledger is down`() {
       val creditSubAccountId = UUID.randomUUID()
       val debitSubAccountId = UUID.randomUUID()
-      val amount = 5L
+      val amount = BigDecimal("5.00")
       val description = "TEST"
 
       val uiFormRequest = CreateTransactionFormRequest(
