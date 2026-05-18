@@ -41,6 +41,7 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
         debit = debit,
         location = getPrisonLocation(statementEntryResponse),
         accountType = statementEntryResponse.subAccount.reference,
+        runningBalance = statementEntryResponse.runningBalance,
       )
     }
 

@@ -6,7 +6,7 @@
       "name" : "HMPPS Digital Studio",
       "email" : "feedback@digital.justice.gov.uk"
     },
-    "version" : "2026-04-21.404.f7254b6"
+    "version" : "2026-05-18.458.92ef382"
   },
   "servers" : [ {
     "url" : "https://prisoner-finance-general-ledger-api-dev.hmpps.service.justice.gov.uk",
@@ -26,6 +26,79 @@
   } ],
   "tags" : [ ],
   "paths" : {
+    "/queue-admin/retry-dlq/{dlqName}" : {
+      "put" : {
+        "tags" : [ "hmpps-queue-resource" ],
+        "operationId" : "retryDlq",
+        "parameters" : [ {
+          "name" : "dlqName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RetryDlqResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/queue-admin/retry-all-dlqs" : {
+      "put" : {
+        "tags" : [ "hmpps-queue-resource" ],
+        "operationId" : "retryAllDlqs",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RetryDlqResult"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/queue-admin/purge-queue/{queueName}" : {
+      "put" : {
+        "tags" : [ "hmpps-queue-resource" ],
+        "operationId" : "purgeQueue",
+        "parameters" : [ {
+          "name" : "queueName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PurgeQueueResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/transactions" : {
       "post" : {
         "tags" : [ "Transaction Controller" ],
@@ -279,6 +352,29 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearer-jwt" : [ "ROLE_PRISONER_FINANCE__GENERAL_LEDGER__RW" ]
+        } ]
+      }
+    },
+    "/migrate/subAccountBalances" : {
+      "post" : {
+        "tags" : [ "Migration Controller" ],
+        "summary" : "Migrate historical subAccount balances",
+        "description" : "Migrates historical subAccount balances",
+        "operationId" : "migrateSubAccountBalances",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResponseStatus"
                 }
               }
             }
@@ -782,6 +878,41 @@
         } ]
       }
     },
+    "/queue-admin/get-dlq-messages/{dlqName}" : {
+      "get" : {
+        "tags" : [ "hmpps-queue-resource" ],
+        "operationId" : "getDlqMessages",
+        "parameters" : [ {
+          "name" : "dlqName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "maxMessages",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 100
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GetDlqResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/hello" : {
       "get" : {
         "tags" : [ "Hello World Controller" ],
@@ -1223,6 +1354,26 @@
   },
   "components" : {
     "schemas" : {
+      "RetryDlqResult" : {
+        "type" : "object",
+        "properties" : {
+          "messagesFoundCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "messagesFoundCount" ]
+      },
+      "PurgeQueueResult" : {
+        "type" : "object",
+        "properties" : {
+          "messagesFoundCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "messagesFoundCount" ]
+      },
       "CreatePostingRequest" : {
         "type" : "object",
         "description" : "A posting within a CreateTransactionRequest",
@@ -1432,6 +1583,7 @@
         },
         "required" : [ "amount", "balanceDateTime", "subAccountId" ]
       },
+      "ResponseStatus" : { },
       "CreateAccountRequest" : {
         "type" : "object",
         "description" : "A request to create an account",
@@ -1549,6 +1701,39 @@
           }
         },
         "required" : [ "amount", "balanceDateTime", "subAccountId" ]
+      },
+      "DlqMessage" : {
+        "type" : "object",
+        "properties" : {
+          "body" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "messageId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "body", "messageId" ]
+      },
+      "GetDlqResult" : {
+        "type" : "object",
+        "properties" : {
+          "messagesFoundCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "messagesReturnedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "messages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DlqMessage"
+            }
+          }
+        },
+        "required" : [ "messages", "messagesFoundCount", "messagesReturnedCount" ]
       },
       "ParentAccountResponse" : {
         "type" : "object",
@@ -1781,6 +1966,11 @@
           "subAccount" : {
             "$ref" : "#/components/schemas/SubAccountWithParentResponse",
             "description" : "The sub account of the statement entry"
+          },
+          "runningBalance" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64",
+            "description" : "The sub account balance at the time the posting was made"
           }
         },
         "required" : [ "amount", "description", "oppositePostings", "postingCreatedAt", "postingType", "subAccount", "transactionId", "transactionTimestamp" ]
