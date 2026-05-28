@@ -16,6 +16,8 @@ data class PrisonerTransactionResponse(
   val location: String,
   @field:Schema(description = "Sub-account reference involved")
   val accountType: String,
-  @field:Schema(description = "Running balance of the account")
-  val runningBalance: Long?,
+  @field:Schema(description = "Running sub account balance of the account")
+  val subAccountBalance: Long?,
+  @field:Schema(description = "Running overall account balance of the account")
+  val accountBalance: Long?,
 )

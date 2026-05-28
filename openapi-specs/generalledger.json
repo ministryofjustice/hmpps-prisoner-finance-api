@@ -6,7 +6,7 @@
       "name" : "HMPPS Digital Studio",
       "email" : "feedback@digital.justice.gov.uk"
     },
-    "version" : "2026-05-18.458.92ef382"
+    "version" : "2026-05-28.486.386c058"
   },
   "servers" : [ {
     "url" : "https://prisoner-finance-general-ledger-api-dev.hmpps.service.justice.gov.uk",
@@ -158,6 +158,85 @@
           },
           "401" : {
             "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden - requires an appropriate role",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Internal Server Error - An unexpected error occurred.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearer-jwt" : [ "ROLE_PRISONER_FINANCE__GENERAL_LEDGER__RW" ]
+        } ]
+      }
+    },
+    "/transactions/search" : {
+      "post" : {
+        "tags" : [ "Transaction Controller" ],
+        "summary" : "Find a list of GL transactions by a list of UUIDs. If a transaction is not found, it is omitted from the results.",
+        "operationId" : "searchTransactions",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "string",
+                  "format" : "uuid"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Retrieve transactions",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TransactionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request - request contains invalid uuids",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized - requires a valid OAuth2 token",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1967,10 +2046,15 @@
             "$ref" : "#/components/schemas/SubAccountWithParentResponse",
             "description" : "The sub account of the statement entry"
           },
-          "runningBalance" : {
+          "subAccountBalance" : {
             "type" : [ "integer", "null" ],
             "format" : "int64",
             "description" : "The sub account balance at the time the posting was made"
+          },
+          "accountBalance" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64",
+            "description" : "The overall account balance at the time the posting was made"
           }
         },
         "required" : [ "amount", "description", "oppositePostings", "postingCreatedAt", "postingType", "subAccount", "transactionId", "transactionTimestamp" ]
