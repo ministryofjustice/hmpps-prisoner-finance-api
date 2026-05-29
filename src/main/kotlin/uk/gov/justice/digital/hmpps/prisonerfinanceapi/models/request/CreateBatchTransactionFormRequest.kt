@@ -1,18 +1,19 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request
 
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
 
 class CreateBatchTransactionFormRequest(
   val caseloadId: String,
-  val caseloadSubAccount: String,
-  val postingType: StatementEntryResponse.PostingType,
+  val caseloadSubAccountRef: String,
+  val postingType: CreatePostingRequest.Type,
   val controlAmount: Long,
   val description: String,
-  val prisonNumbersPostings: List<PrisonNumberPosting>,
+  val prisonNumbersPostings: List<PrisonerPosting>,
 )
 
-class PrisonNumberPosting(
+class PrisonerPosting(
   val prisonNumber: String,
-  val postingType: StatementEntryResponse.PostingType,
+  val postingType: CreatePostingRequest.Type,
+  val prisonerSubAccountRef: String,
   val amount: Long,
 )
