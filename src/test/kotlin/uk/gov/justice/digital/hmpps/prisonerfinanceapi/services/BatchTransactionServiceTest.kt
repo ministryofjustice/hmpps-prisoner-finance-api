@@ -55,13 +55,8 @@ class BatchTransactionServiceTest {
     ),
   )
 
-  fun createAccountResponseFrom(prisonerPosting: PrisonerPosting) = AccountResponse(
-    id = UUID.randomUUID(),
-    reference = prisonerPosting.prisonNumber,
-    type = AccountResponse.Type.PRISONER,
-    createdBy = "Test User",
-    createdAt = Instant.now(),
-    subAccounts = listOf(
+  fun createAccountResponseFrom(prisonerPosting: PrisonerPosting, extraSubAccountReferences: List<String> = emptyList()): AccountResponse {
+    val listOfSubAccounts = mutableListOf<SubAccountResponse>(
       SubAccountResponse(
         id = UUID.randomUUID(),
         reference = prisonerPosting.prisonerSubAccountRef,
@@ -69,8 +64,29 @@ class BatchTransactionServiceTest {
         createdBy = "test",
         createdAt = Instant.now(),
       ),
-    ),
-  )
+    )
+
+    for (ref in extraSubAccountReferences) {
+      listOfSubAccounts.add(
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = ref,
+          parentAccountId = UUID.randomUUID(),
+          createdBy = "test",
+          createdAt = Instant.now(),
+        ),
+      )
+    }
+
+    return AccountResponse(
+      id = UUID.randomUUID(),
+      reference = prisonerPosting.prisonNumber,
+      type = AccountResponse.Type.PRISONER,
+      createdBy = "Test User",
+      createdAt = Instant.now(),
+      subAccounts = listOfSubAccounts,
+    )
+  }
 
   fun buildAccountResponsesFromBatchTransactionRequest(request: CreateBatchTransactionFormRequest): List<AccountResponse> {
     val accountResponses = request.prisonNumbersPostings.map { createAccountResponseFrom(it) }.toMutableList()
@@ -117,6 +133,7 @@ class BatchTransactionServiceTest {
 
     assertThat(postings).hasSize(references.size)
 
+    // TODO: change from first to find
     val accountRefToSubAccountId = accountResponses.associate { acc -> acc.reference to acc.subAccounts.first().id }
     val postingSubAccountIds = postings.map { it.subAccountId }
     val referencesSubAccountsIds = references.map { accountRefToSubAccountId[it] }
@@ -200,5 +217,50 @@ class BatchTransactionServiceTest {
     assertThat(prisonPosting.entrySequence).isEqualTo(expectedPrisonPostingEntrySequence)
 
     assertThat(createTransactionRequest.postings.map { it.entrySequence }.sorted()).containsExactly(1L, 2L, 3L)
+  }
+
+  @Test
+  fun `Should use correct subAccount when multiple exist in general ledger`() {
+    val request = createBatchTransactionFormReq(CreatePostingRequest.Type.DR)
+
+    val references = request.prisonNumbersPostings.map { it.prisonNumber }.toMutableList()
+
+    val prisonAccountId = UUID.randomUUID()
+
+    val prisonAccountResponse = AccountResponse(
+      id = prisonAccountId,
+      reference = request.caseloadId,
+      createdBy = "TEST",
+      createdAt = Instant.now(),
+      type = AccountResponse.Type.PRISON,
+      subAccounts = listOf(
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = request.caseloadSubAccountRef,
+          parentAccountId = prisonAccountId,
+          createdBy = "TEST",
+          createdAt = Instant.now(),
+        ),
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = "SOME_ACCOUNT",
+          parentAccountId = prisonAccountId,
+          createdBy = "TEST",
+          createdAt = Instant.now(),
+        ),
+      ),
+    )
+
+    val accountResponses = request.prisonNumbersPostings.map { createAccountResponseFrom(it, listOf("SPENDS")) }.toMutableList()
+
+    accountResponses.add(prisonAccountResponse)
+
+    whenever(generalLedgerApiClient.searchAccountsByReferences(references)).thenReturn(
+      accountResponses,
+    )
+
+    batchTransactionService.createBatchTransaction(request = request)
+
+    verifyTransaction(request = request, references = references, accountResponses = accountResponses)
   }
 }
