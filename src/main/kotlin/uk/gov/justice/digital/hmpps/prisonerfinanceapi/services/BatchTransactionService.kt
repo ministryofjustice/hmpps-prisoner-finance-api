@@ -27,7 +27,9 @@ class BatchTransactionService(
   ): CreateTransactionRequest {
     val postings = mutableListOf<CreatePostingRequest>()
 
-    var postingEntrySequenceCounter = if (request.postingType == CreatePostingRequest.Type.DR) 2L else 1L
+    val prisonPostingIsDebit = (request.postingType == CreatePostingRequest.Type.DR)
+
+    var postingEntrySequenceCounter = if (prisonPostingIsDebit) 2L else 1L
 
     request.prisonNumbersPostings.forEach { posting ->
       getSubAccountByRefOrNull(posting.prisonNumber, accounts, posting.prisonerSubAccountRef)?.let { subAccount ->
@@ -47,7 +49,7 @@ class BatchTransactionService(
         subAccountId = getSubAccountByRefOrNull(request.caseloadId, accounts, request.caseloadSubAccountRef)!!.id,
         type = request.postingType,
         amount = request.controlAmount, // todo update control amount when some prisoners are skipped
-        entrySequence = if (request.postingType == CreatePostingRequest.Type.DR) 1L else postingEntrySequenceCounter,
+        entrySequence = if (prisonPostingIsDebit) 1L else postingEntrySequenceCounter,
       ),
     )
 

@@ -124,6 +124,9 @@ class BatchTransactionServiceTest {
     CreatePostingRequest.Type.DR -> CreatePostingRequest.Type.CR
   }
 
+  /*
+   * This function only verifies correctly if the account responses only contain one sub-account
+   */
   fun verifyTransaction(request: CreateBatchTransactionFormRequest, references: List<String>, accountResponses: List<AccountResponse>): Pair<CreateTransactionRequest, Map<String, UUID>> {
     val createTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
 
@@ -141,7 +144,6 @@ class BatchTransactionServiceTest {
 
     assertThat(postings).hasSize(references.size)
 
-    // TODO: change from first to find
     val accountRefToSubAccountId = accountResponses.associate { acc -> acc.reference to acc.subAccounts.first().id }
     val postingSubAccountIds = postings.map { it.subAccountId }
     val referencesSubAccountsIds = references.map { accountRefToSubAccountId[it] }
