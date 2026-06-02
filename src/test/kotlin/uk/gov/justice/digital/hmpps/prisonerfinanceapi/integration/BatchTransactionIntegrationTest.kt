@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -103,7 +104,7 @@ class BatchTransactionIntegrationTest : IntegrationTestBase() {
     )
 
     @Test
-    fun `Should post a transaction where all the accounts exist within the general ledger`() {
+    fun `Should return 201 - and post a transaction where all the accounts exist within the general ledger`() {
       val generalLedgerAccounts: List<AccountResponse> = listOf(
         prisonAccount,
         prisoner1Account,
@@ -134,9 +135,11 @@ class BatchTransactionIntegrationTest : IntegrationTestBase() {
         ),
       )
 
+      val transactionId = UUID.randomUUID()
+
       generalLedgerApi.stubPostTransaction(
         TransactionResponse(
-          id = UUID.randomUUID(),
+          id = transactionId,
           createdBy = "TEST",
           createdAt = Instant.now(),
           reference = grantBonusForm.description,
@@ -172,7 +175,7 @@ class BatchTransactionIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      webTestClient.post()
+      val response = webTestClient.post()
         .uri("/transactions/batch")
         .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
         .bodyValue(grantBonusForm)
@@ -180,6 +183,20 @@ class BatchTransactionIntegrationTest : IntegrationTestBase() {
         .expectStatus().isCreated
         .expectBody<TransactionResponse>()
         .returnResult().responseBody!!
+
+      assertThat(response.amount).isEqualTo(grantBonusForm.controlAmount)
+      assertThat(response.postings.size).isEqualTo(3)
+      assertThat(response.id).isEqualTo(transactionId)
+    }
+
+    @Test
+    fun `Should return 400 - bad request`() {
+      webTestClient.post()
+        .uri("/transactions/batch")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
+        .bodyValue(mapOf("error" to "error"))
+        .exchange()
+        .expectStatus().isBadRequest
     }
 
     @Test
