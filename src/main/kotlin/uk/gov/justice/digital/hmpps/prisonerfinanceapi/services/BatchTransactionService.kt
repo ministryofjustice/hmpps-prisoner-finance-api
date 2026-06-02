@@ -6,6 +6,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Acco
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateBatchTransactionFormRequest
 import java.time.Instant
 import java.util.UUID
@@ -15,9 +16,9 @@ class BatchTransactionService(
   private val generalLedgerApiClient: GeneralLedgerApiClient,
 ) {
 
-  private fun getSubAccountByRefOrNull(accountRef: String, accounts: List<AccountResponse>): SubAccountResponse? {
+  private fun getSubAccountByRefOrNull(accountRef: String, accounts: List<AccountResponse>, subAccountRef: String): SubAccountResponse? {
     val account = accounts.firstOrNull { it.reference == accountRef } ?: return null
-    return account.subAccounts.firstOrNull()
+    return account.subAccounts.find { subAccount -> subAccount.reference == subAccountRef }
   }
 
   private fun buildCreateTransactionRequest(
@@ -29,7 +30,7 @@ class BatchTransactionService(
     var postingEntrySequenceCounter = if (request.postingType == CreatePostingRequest.Type.DR) 2L else 1L
 
     request.prisonNumbersPostings.forEach { posting ->
-      getSubAccountByRefOrNull(posting.prisonNumber, accounts)?.let { subAccount ->
+      getSubAccountByRefOrNull(posting.prisonNumber, accounts, posting.prisonerSubAccountRef)?.let { subAccount ->
         val createdPostingRequest = CreatePostingRequest(
           subAccountId = subAccount.id,
           type = posting.postingType,
@@ -43,9 +44,7 @@ class BatchTransactionService(
 
     postings.add(
       CreatePostingRequest(
-        // todo fix the subAccountId
-        // maybe create prison sub account if not exists
-        subAccountId = accounts.first { it.reference == request.caseloadId }.subAccounts.first().id,
+        subAccountId = getSubAccountByRefOrNull(request.caseloadId, accounts, request.caseloadSubAccountRef)!!.id,
         type = request.postingType,
         amount = request.controlAmount, // todo update control amount when some prisoners are skipped
         entrySequence = if (request.postingType == CreatePostingRequest.Type.DR) 1L else postingEntrySequenceCounter,
@@ -62,7 +61,7 @@ class BatchTransactionService(
     )
   }
 
-  fun createBatchTransaction(request: CreateBatchTransactionFormRequest) {
+  fun createBatchTransaction(request: CreateBatchTransactionFormRequest): TransactionResponse {
     val references = request.prisonNumbersPostings.map { it.prisonNumber }.toMutableList()
     references.add(request.caseloadId)
 
@@ -70,6 +69,6 @@ class BatchTransactionService(
 
     val transactionRequest = buildCreateTransactionRequest(request = request, accounts = accounts)
 
-    generalLedgerApiClient.postTransaction(idempotencyKey = UUID.randomUUID(), createTransactionRequest = transactionRequest)
+    return generalLedgerApiClient.postTransaction(idempotencyKey = UUID.randomUUID(), createTransactionRequest = transactionRequest)
   }
 }

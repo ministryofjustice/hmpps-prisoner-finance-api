@@ -181,5 +181,45 @@ class BatchTransactionIntegrationTest : IntegrationTestBase() {
         .expectBody<TransactionResponse>()
         .returnResult().responseBody!!
     }
+
+    @Test
+    fun `Should return 401 - unauthorised batch transaction`() {
+      webTestClient.post()
+        .uri("/transactions/batch")
+        .exchange()
+        .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `Should return 403 - when requesting a batch transaction without the correct role`() {
+      val grantBonusForm = CreateBatchTransactionFormRequest(
+        caseloadId = prisonAccount.reference,
+        caseloadSubAccountRef = prisonAccount.subAccounts.last().reference,
+        postingType = CreatePostingRequest.Type.DR,
+        controlAmount = 100L,
+        description = "Grant a bonus",
+        prisonNumbersPostings = listOf(
+          PrisonerPosting(
+            prisonNumber = prisoner1Account.reference,
+            postingType = CreatePostingRequest.Type.CR,
+            prisonerSubAccountRef = prisoner1Account.subAccounts.first().reference,
+            amount = 50L,
+          ),
+          PrisonerPosting(
+            prisonNumber = prisoner2Account.reference,
+            postingType = CreatePostingRequest.Type.CR,
+            prisonerSubAccountRef = prisoner2Account.subAccounts.last().reference,
+            amount = 50L,
+          ),
+        ),
+      )
+
+      webTestClient.post()
+        .uri("/transactions/batch")
+        .headers(setAuthorisation(roles = listOf("WRONG_ROLE")))
+        .bodyValue(grantBonusForm)
+        .exchange()
+        .expectStatus().isForbidden
+    }
   }
 }

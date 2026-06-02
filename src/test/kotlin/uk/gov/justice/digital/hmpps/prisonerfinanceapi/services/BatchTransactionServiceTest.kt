@@ -66,16 +66,24 @@ class BatchTransactionServiceTest {
       ),
     )
 
-    for (ref in extraSubAccountReferences) {
-      listOfSubAccounts.add(
-        SubAccountResponse(
-          id = UUID.randomUUID(),
-          reference = ref,
-          parentAccountId = UUID.randomUUID(),
-          createdBy = "test",
-          createdAt = Instant.now(),
-        ),
+    for ((i, ref) in extraSubAccountReferences.withIndex()) {
+      val subAccountResponse = SubAccountResponse(
+        id = UUID.randomUUID(),
+        reference = ref,
+        parentAccountId = UUID.randomUUID(),
+        createdBy = "test",
+        createdAt = Instant.now(),
       )
+
+      if (i % 2 == 0) {
+        listOfSubAccounts.add(
+          subAccountResponse,
+        )
+      } else {
+        listOfSubAccounts.addFirst(
+          subAccountResponse,
+        )
+      }
     }
 
     return AccountResponse(
@@ -225,7 +233,11 @@ class BatchTransactionServiceTest {
 
     val references = request.prisonNumbersPostings.map { it.prisonNumber }.toMutableList()
 
+    references.add(request.caseloadId)
+
     val prisonAccountId = UUID.randomUUID()
+
+    val correctPrisonSubAccountId = UUID.randomUUID()
 
     val prisonAccountResponse = AccountResponse(
       id = prisonAccountId,
@@ -236,14 +248,14 @@ class BatchTransactionServiceTest {
       subAccounts = listOf(
         SubAccountResponse(
           id = UUID.randomUUID(),
-          reference = request.caseloadSubAccountRef,
+          reference = "SOME_ACCOUNT",
           parentAccountId = prisonAccountId,
           createdBy = "TEST",
           createdAt = Instant.now(),
         ),
         SubAccountResponse(
-          id = UUID.randomUUID(),
-          reference = "SOME_ACCOUNT",
+          id = correctPrisonSubAccountId,
+          reference = request.caseloadSubAccountRef,
           parentAccountId = prisonAccountId,
           createdBy = "TEST",
           createdAt = Instant.now(),
@@ -261,6 +273,36 @@ class BatchTransactionServiceTest {
 
     batchTransactionService.createBatchTransaction(request = request)
 
-    verifyTransaction(request = request, references = references, accountResponses = accountResponses)
+    val createTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
+
+    verify(generalLedgerApiClient, times(1)).postTransaction(
+      idempotencyKey = any(),
+      createTransactionRequest = createTransactionRequestCaptor.capture(),
+    )
+    val createTransactionRequest = createTransactionRequestCaptor.firstValue
+    assertThat(createTransactionRequest.reference).isEqualTo(request.description)
+    assertThat(createTransactionRequest.description).isEqualTo(request.description)
+    assertThat(createTransactionRequest.amount).isEqualTo(request.controlAmount)
+    assertThat(createTransactionRequest.entrySequence).isEqualTo(1)
+
+    val postings = createTransactionRequest.postings
+
+    assertThat(postings).hasSize(references.size)
+
+    val postingSubAccountIds = postings.map { it.subAccountId }
+
+    val correctSubAccountIds = mutableListOf<UUID>(correctPrisonSubAccountId)
+
+    accountResponses.forEach { accountResponse ->
+      accountResponse.subAccounts.forEach { subAccount ->
+        if (subAccount.reference == "CASH") {
+          correctSubAccountIds.add(subAccount.id)
+        }
+      }
+    }
+
+    assertThat(correctSubAccountIds).hasSize(3)
+
+    assertThat(postingSubAccountIds).containsExactlyInAnyOrderElementsOf(correctSubAccountIds)
   }
 }

@@ -15,13 +15,18 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateBatchTransactionFormRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.BatchTransactionService
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @Tag(name = "Transaction controller")
 @RestController
-class TransactionController(private val transactionService: TransactionService) {
+class TransactionController(
+  private val transactionService: TransactionService,
+  private val batchTransactionService: BatchTransactionService,
+) {
 
   @Operation(
     summary = "Create a transaction",
@@ -72,5 +77,13 @@ class TransactionController(private val transactionService: TransactionService) 
   fun createTransaction(@RequestBody @Valid payload: CreateTransactionFormRequest): ResponseEntity<TransactionResponse> {
     val createdTransaction = transactionService.createTransaction(payload)
     return ResponseEntity.status(201).body(createdTransaction)
+  }
+
+  @SecurityRequirement(name = "bearer-jwt", scopes = [ROLE_PRISONER_FINANCE__PROFILE__RW])
+  @PreAuthorize("hasAnyAuthority('$ROLE_PRISONER_FINANCE__PROFILE__RW')")
+  @PostMapping("/transactions/batch")
+  fun createTransactionBatch(@RequestBody @Valid payload: CreateBatchTransactionFormRequest): ResponseEntity<TransactionResponse> {
+    val createdTransactions = batchTransactionService.createBatchTransaction(payload)
+    return ResponseEntity.status(201).body(createdTransactions)
   }
 }
