@@ -112,7 +112,7 @@ class TransactionController(
       ),
       ApiResponse(
         responseCode = "404",
-        description = "Not found - no prisoner sub account found or no whitelisted prisoner in the transaction",
+        description = "Not found - no prisoner sub account found",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
