@@ -52,6 +52,13 @@ class GeneralLedgerApiClient(
     },
   )
 
+  fun searchAccountsByReferences(references: List<String>): List<AccountResponse> = handleExceptions(
+    {
+      accountApi.searchAccounts(references).block()
+        ?: throw IllegalStateException("Received null response when searching for accounts by references: $references")
+    },
+  )
+
   fun getSubAccountBalance(accountUUID: UUID): SubAccountBalanceResponse = handleExceptions(
     {
       subAccountApi.getSubAccountBalance(accountUUID).block()

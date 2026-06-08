@@ -288,4 +288,16 @@ class GeneralLedgerApiMockServer :
         ),
     )
   }
+
+  fun stubSearchAccountsByReferences(accountsToReturn: List<AccountResponse>) {
+    generalLedgerApi.stubFor(
+      post("/accounts/search")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withStatus(200)
+            .withBody(mapper.writeValueAsString(accountsToReturn)),
+        ),
+    )
+  }
 }
