@@ -106,6 +106,16 @@ class TransactionController(
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
+        responseCode = "404",
+        description = "Not found - prison account or sub account not found",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Not found - no prisoner sub account found or no whitelisted prisoner in the transaction",
+        content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
         responseCode = "500",
         description = "Internal Server Error - An unexpected error occurred.",
         content = [Content(mediaType = "application/json", schema = Schema(implementation = ErrorResponse::class))],

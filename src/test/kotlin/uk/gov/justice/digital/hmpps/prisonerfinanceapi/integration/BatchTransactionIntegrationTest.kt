@@ -1,9 +1,14 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.config.ROLE_PRISONER_FINANCE__PROFILE__RW
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension
@@ -11,6 +16,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Gene
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.ErrorResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
@@ -237,6 +243,237 @@ class BatchTransactionIntegrationTest : IntegrationTestBase() {
         .bodyValue(grantBonusForm)
         .exchange()
         .expectStatus().isForbidden
+    }
+
+    @Test
+    fun `Should return 404 - when the prisonAccount doesn't exist`() {
+      val generalLedgerAccounts: List<AccountResponse> = listOf(
+        prisoner1Account,
+        prisoner2Account,
+      )
+
+      generalLedgerApi.stubSearchAccountsByReferences(accountsToReturn = generalLedgerAccounts)
+
+      val prisonSubAccountRef = "XXXX:999"
+      val grantBonusForm = CreateBatchTransactionFormRequest(
+        caseloadId = prisonAccount.reference,
+        caseloadSubAccountRef = prisonSubAccountRef,
+        postingType = CreatePostingRequest.Type.DR,
+        controlAmount = 100L,
+        description = "Grant a bonus",
+        prisonNumbersPostings = listOf(
+          PrisonerPosting(
+            prisonNumber = prisoner1Account.reference,
+            postingType = CreatePostingRequest.Type.CR,
+            prisonerSubAccountRef = prisoner1Account.subAccounts.first().reference,
+            amount = 50L,
+          ),
+          PrisonerPosting(
+            prisonNumber = prisoner2Account.reference,
+            postingType = CreatePostingRequest.Type.CR,
+            prisonerSubAccountRef = prisoner2Account.subAccounts.last().reference,
+            amount = 50L,
+          ),
+        ),
+      )
+
+      val response = webTestClient.post()
+        .uri("/transactions/batch")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
+        .bodyValue(grantBonusForm)
+        .exchange()
+        .expectStatus().isNotFound
+        .expectBody<ErrorResponse>()
+        .returnResult().responseBody!!
+
+      assertThat(response.userMessage).isEqualTo(
+        "Prison sub account not found for caseload ${prisonAccount.reference} and sub account $prisonSubAccountRef",
+      )
+    }
+
+    @Test
+    fun `Should return 404 - when there are no prisoner subAccounts therefore no posting to create a transaction`() {
+      val generalLedgerAccounts: List<AccountResponse> = listOf(
+        prisonAccount,
+      )
+      generalLedgerApi.stubSearchAccountsByReferences(accountsToReturn = generalLedgerAccounts)
+
+      val grantBonusForm = CreateBatchTransactionFormRequest(
+        caseloadId = prisonAccount.reference,
+        caseloadSubAccountRef = prisonAccount.subAccounts.last().reference,
+        postingType = CreatePostingRequest.Type.DR,
+        controlAmount = 100L,
+        description = "Grant a bonus",
+        prisonNumbersPostings = listOf(
+          PrisonerPosting(
+            prisonNumber = prisoner1Account.reference,
+            postingType = CreatePostingRequest.Type.CR,
+            prisonerSubAccountRef = prisoner1Account.subAccounts.first().reference,
+            amount = 50L,
+          ),
+          PrisonerPosting(
+            prisonNumber = prisoner2Account.reference,
+            postingType = CreatePostingRequest.Type.CR,
+            prisonerSubAccountRef = prisoner2Account.subAccounts.last().reference,
+            amount = 50L,
+          ),
+        ),
+      )
+
+      val response = webTestClient.post()
+        .uri("/transactions/batch")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
+        .bodyValue(grantBonusForm)
+        .exchange()
+        .expectStatus().isNotFound
+        .expectBody<ErrorResponse>()
+        .returnResult().responseBody!!
+
+      assertThat(response.userMessage).isEqualTo(
+        "Cannot create a transaction, no prisoner subAccounts found",
+      )
+    }
+
+    @Nested
+    @TestPropertySource(
+      properties = [
+        "feature.general-ledger-api.whitelist.enabled=true",
+        "feature.general-ledger-api.whitelist.test-prisoner-ids=A213671C",
+      ],
+    )
+    inner class WhitelistEnabled {
+      @Test
+      fun `Should return 201 - and filter out prisoners that are not whitelisted`() {
+        // prisoner1Account is whitelisted, prisoner2Account is not
+
+        val generalLedgerAccounts: List<AccountResponse> = listOf(
+          prisonAccount,
+          prisoner1Account,
+          prisoner2Account,
+        )
+
+        generalLedgerApi.stubSearchAccountsByReferences(accountsToReturn = generalLedgerAccounts)
+
+        val grantBonusForm = CreateBatchTransactionFormRequest(
+          caseloadId = prisonAccount.reference,
+          caseloadSubAccountRef = prisonAccount.subAccounts.last().reference,
+          postingType = CreatePostingRequest.Type.DR,
+          controlAmount = 100L,
+          description = "Grant a bonus",
+          prisonNumbersPostings = listOf(
+            PrisonerPosting(
+              prisonNumber = prisoner1Account.reference, // in whitelist
+              postingType = CreatePostingRequest.Type.CR,
+              prisonerSubAccountRef = prisoner1Account.subAccounts.first().reference,
+              amount = 50L,
+            ),
+            PrisonerPosting(
+              prisonNumber = prisoner2Account.reference, // not in whitelist
+              postingType = CreatePostingRequest.Type.CR,
+              prisonerSubAccountRef = prisoner2Account.subAccounts.last().reference,
+              amount = 50L,
+            ),
+          ),
+        )
+
+        val transactionId = UUID.randomUUID()
+
+        generalLedgerApi.stubPostTransaction(
+          TransactionResponse(
+            id = transactionId,
+            createdBy = "TEST",
+            createdAt = Instant.now(),
+            reference = grantBonusForm.description,
+            description = grantBonusForm.description,
+            timestamp = Instant.now(),
+            amount = 50L,
+            postings = listOf(
+              PostingResponse(
+                id = UUID.randomUUID(),
+                createdBy = "TEST",
+                createdAt = Instant.now(),
+                type = PostingResponse.Type.DR,
+                amount = 50,
+                subAccountID = prisonAccount.subAccounts.last().id,
+              ),
+              PostingResponse(
+                id = UUID.randomUUID(),
+                createdBy = "TEST",
+                createdAt = Instant.now(),
+                type = PostingResponse.Type.CR,
+                amount = 50,
+                subAccountID = prisoner2Account.subAccounts.last().id,
+              ),
+            ),
+          ),
+        )
+
+        val response = webTestClient.post()
+          .uri("/transactions/batch")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
+          .bodyValue(grantBonusForm)
+          .exchange()
+          .expectStatus().isCreated
+          .expectBody<TransactionResponse>()
+          .returnResult().responseBody!!
+
+        assertThat(response.amount).isEqualTo(50L)
+        assertThat(response.postings.size).isEqualTo(2)
+        assertThat(response.id).isEqualTo(transactionId)
+
+        generalLedgerApi.verify(
+          1,
+          postRequestedFor(urlEqualTo("/transactions"))
+            .withRequestBody(matchingJsonPath("$.postings.size()", equalTo("2")))
+            .withRequestBody(matchingJsonPath("$.amount", equalTo("50"))),
+        )
+      }
+
+      @Test
+      fun `Should return 404 - when there are no whitelisted prisoners therefore no posting to create a transaction`() {
+        val generalLedgerAccounts: List<AccountResponse> = listOf(
+          prisonAccount,
+          prisoner1Account,
+          prisoner2Account,
+        )
+
+        generalLedgerApi.stubSearchAccountsByReferences(accountsToReturn = generalLedgerAccounts)
+
+        val grantBonusForm = CreateBatchTransactionFormRequest(
+          caseloadId = prisonAccount.reference,
+          caseloadSubAccountRef = prisonAccount.subAccounts.last().reference,
+          postingType = CreatePostingRequest.Type.DR,
+          controlAmount = 100L,
+          description = "Grant a bonus",
+          prisonNumbersPostings = listOf(
+            PrisonerPosting(
+              prisonNumber = "ABC123",
+              postingType = CreatePostingRequest.Type.CR,
+              prisonerSubAccountRef = prisoner1Account.subAccounts.first().reference,
+              amount = 50L,
+            ),
+            PrisonerPosting(
+              prisonNumber = "DCE123",
+              postingType = CreatePostingRequest.Type.CR,
+              prisonerSubAccountRef = prisoner2Account.subAccounts.last().reference,
+              amount = 50L,
+            ),
+          ),
+        )
+
+        val response = webTestClient.post()
+          .uri("/transactions/batch")
+          .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RW)))
+          .bodyValue(grantBonusForm)
+          .exchange()
+          .expectStatus().isNotFound
+          .expectBody<ErrorResponse>()
+          .returnResult().responseBody!!
+
+        assertThat(response.userMessage).isEqualTo(
+          "Cannot create a transaction, no prisoner subAccounts found",
+        )
+      }
     }
   }
 }

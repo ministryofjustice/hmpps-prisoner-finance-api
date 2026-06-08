@@ -1,6 +1,9 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
@@ -14,6 +17,8 @@ import java.util.UUID
 @Service
 class BatchTransactionService(
   private val generalLedgerApiClient: GeneralLedgerApiClient,
+  @Value("\${feature.general-ledger-api.whitelist.enabled:false}") private val generalLedgerWhitelistEnabled: Boolean,
+  @Value("\${feature.general-ledger-api.whitelist.test-prisoner-ids:DISABLED}") private val generalLedgerWhitelistPrisonerIds: List<String>,
 ) {
 
   private fun getSubAccountByRefOrNull(accountRef: String, accounts: List<AccountResponse>, subAccountRef: String): SubAccountResponse? {
@@ -31,10 +36,32 @@ class BatchTransactionService(
 
     var postingEntrySequenceCounter = if (prisonPostingIsDebit) 2L else 1L
 
+    var transactionAmount = request.controlAmount
+
+    val prisonSubAccount = getSubAccountByRefOrNull(request.caseloadId, accounts, request.caseloadSubAccountRef)
+
+    if (prisonSubAccount == null) {
+      throw CustomException(
+        message = "Prison sub account not found for caseload ${request.caseloadId} and sub account ${request.caseloadSubAccountRef}",
+        status = HttpStatus.NOT_FOUND,
+      )
+    }
+
+    val prisonNumberToSubAccounts = request.prisonNumbersPostings.associate {
+      it.prisonNumber to getSubAccountByRefOrNull(it.prisonNumber, accounts, it.prisonerSubAccountRef)
+    }
+
+    // builds prisoners' postings
     request.prisonNumbersPostings.forEach { posting ->
-      getSubAccountByRefOrNull(posting.prisonNumber, accounts, posting.prisonerSubAccountRef)?.let { subAccount ->
+      val prisonerSubAccount = prisonNumberToSubAccounts.getValue(posting.prisonNumber)
+      if (
+        prisonerSubAccount == null ||
+        (generalLedgerWhitelistEnabled && !generalLedgerWhitelistPrisonerIds.contains(posting.prisonNumber))
+      ) {
+        transactionAmount -= posting.amount
+      } else {
         val createdPostingRequest = CreatePostingRequest(
-          subAccountId = subAccount.id,
+          subAccountId = prisonerSubAccount.id,
           type = posting.postingType,
           amount = posting.amount,
           entrySequence = postingEntrySequenceCounter,
@@ -44,11 +71,19 @@ class BatchTransactionService(
       }
     }
 
+    if (postings.isEmpty()) {
+      throw CustomException(
+        message = "Cannot create a transaction, no prisoner subAccounts found",
+        status = HttpStatus.NOT_FOUND,
+      )
+    }
+
+    // builds prison posting
     postings.add(
       CreatePostingRequest(
-        subAccountId = getSubAccountByRefOrNull(request.caseloadId, accounts, request.caseloadSubAccountRef)!!.id,
+        subAccountId = prisonSubAccount.id,
         type = request.postingType,
-        amount = request.controlAmount, // todo update control amount when some prisoners are skipped
+        amount = transactionAmount,
         entrySequence = if (prisonPostingIsDebit) 1L else postingEntrySequenceCounter,
       ),
     )
@@ -57,7 +92,7 @@ class BatchTransactionService(
       reference = request.description,
       description = request.description,
       timestamp = Instant.now(),
-      amount = request.controlAmount,
+      amount = transactionAmount,
       entrySequence = 1,
       postings = postings,
     )

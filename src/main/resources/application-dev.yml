@@ -12,3 +12,8 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+feature:
+  general-ledger-api:
+    whitelist:
+      enabled: false

@@ -2,11 +2,11 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
@@ -30,16 +30,28 @@ class BatchTransactionServiceTest {
   @Mock
   private lateinit var generalLedgerApiClient: GeneralLedgerApiClient
 
-  @InjectMocks
   private lateinit var batchTransactionService: BatchTransactionService
 
-  fun createBatchTransactionFormReq(requestPostingType: CreatePostingRequest.Type) = CreateBatchTransactionFormRequest(
+  @BeforeEach
+  fun setup() {
+    batchTransactionService = BatchTransactionService(
+      generalLedgerApiClient,
+      false,
+      emptyList(),
+    )
+  }
+
+  fun createBatchTransactionFormReq(
+    requestPostingType: CreatePostingRequest.Type,
+    prisonNumberPostings: List<PrisonerPosting>? = null,
+    controlAmount: Long = 200L,
+  ) = CreateBatchTransactionFormRequest(
     caseloadId = "LEI",
     caseloadSubAccountRef = "1504:DEM",
     postingType = requestPostingType,
-    controlAmount = 200L,
+    controlAmount = controlAmount,
     description = "Test",
-    prisonNumbersPostings = listOf(
+    prisonNumbersPostings = prisonNumberPostings ?: listOf(
       PrisonerPosting(
         prisonNumber = "A1234AA",
         postingType = requestPostingType.opposite(),
@@ -128,6 +140,10 @@ class BatchTransactionServiceTest {
    * This function only verifies correctly if the account responses only contain one sub-account
    */
   fun verifyTransaction(request: CreateBatchTransactionFormRequest, references: List<String>, accountResponses: List<AccountResponse>): Pair<CreateTransactionRequest, Map<String, UUID>> {
+    if (accountResponses.any { it.subAccounts.size > 1 }) {
+      throw IllegalStateException("This function only verifies correctly if the account responses only contain one sub-account")
+    }
+
     val createTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
 
     verify(generalLedgerApiClient, times(1)).postTransaction(
@@ -306,5 +322,201 @@ class BatchTransactionServiceTest {
     assertThat(correctSubAccountIds).hasSize(3)
 
     assertThat(postingSubAccountIds).containsExactlyInAnyOrderElementsOf(correctSubAccountIds)
+  }
+
+  @Test
+  fun `Should filter out prisoners not in the whitelist when enabled and update the control amount`() {
+    val whitelistedPrisoners = listOf("ABC123", "EFG456")
+    val notWhitelistedPrisoner = "NOT_IN_WHITELIST"
+    batchTransactionService = BatchTransactionService(
+      generalLedgerApiClient,
+      generalLedgerWhitelistEnabled = true,
+      generalLedgerWhitelistPrisonerIds = whitelistedPrisoners,
+    )
+
+    val requestPostingType = CreatePostingRequest.Type.DR
+    val request = createBatchTransactionFormReq(
+      requestPostingType = requestPostingType,
+      prisonNumberPostings = listOf(
+        PrisonerPosting(
+          prisonNumber = whitelistedPrisoners[0],
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+        PrisonerPosting(
+          prisonNumber = whitelistedPrisoners[1],
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+        PrisonerPosting(
+          prisonNumber = notWhitelistedPrisoner,
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+      ),
+      controlAmount = 300L,
+    )
+
+    val references = request.prisonNumbersPostings.map { it.prisonNumber }.toMutableList()
+    references.add(request.caseloadId)
+
+    val accountResponses = buildAccountResponsesFromBatchTransactionRequest(request)
+
+    whenever(generalLedgerApiClient.searchAccountsByReferences(references)).thenReturn(
+      accountResponses,
+    )
+
+    batchTransactionService.createBatchTransaction(request = request)
+
+    val createTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
+    verify(generalLedgerApiClient, times(1)).postTransaction(
+      idempotencyKey = any(),
+      createTransactionRequest = createTransactionRequestCaptor.capture(),
+    )
+    val createTransactionRequest = createTransactionRequestCaptor.firstValue
+
+    val postings = createTransactionRequest.postings
+
+    val accountRefToSubAccountId = accountResponses.associate { acc -> acc.reference to acc.subAccounts.first().id }
+
+    assertThat(postings.firstOrNull { posting -> posting.subAccountId == accountRefToSubAccountId[notWhitelistedPrisoner] }).isNull()
+    assertThat(postings).hasSize(3)
+
+    assertThat(createTransactionRequest.amount).isEqualTo(200L)
+
+    val (prisonPosting, prisonersPostings) = postings.partition { posting -> posting.subAccountId == accountRefToSubAccountId["LEI"] }
+    assertThat(prisonPosting[0].amount).isEqualTo(200L)
+    assertTrue(prisonersPostings.all { it.amount == 100L })
+  }
+
+  @Test
+  fun `Should not filter out prisoners not in the whitelist when it's disabled`() {
+    val whitelistedPrisoners = listOf("ABC123", "EFG456")
+    val notWhitelistedPrisoner = "NOT_IN_WHITELIST"
+    batchTransactionService = BatchTransactionService(
+      generalLedgerApiClient,
+      generalLedgerWhitelistEnabled = false,
+      generalLedgerWhitelistPrisonerIds = whitelistedPrisoners,
+    )
+
+    val requestPostingType = CreatePostingRequest.Type.DR
+    val request = createBatchTransactionFormReq(
+      requestPostingType = requestPostingType,
+      prisonNumberPostings = listOf(
+        PrisonerPosting(
+          prisonNumber = whitelistedPrisoners[0],
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+        PrisonerPosting(
+          prisonNumber = whitelistedPrisoners[1],
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+        PrisonerPosting(
+          prisonNumber = notWhitelistedPrisoner,
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+      ),
+      controlAmount = 300L,
+    )
+
+    val references = request.prisonNumbersPostings.map { it.prisonNumber }.toMutableList()
+    references.add(request.caseloadId)
+
+    val accountResponses = buildAccountResponsesFromBatchTransactionRequest(request)
+
+    whenever(generalLedgerApiClient.searchAccountsByReferences(references)).thenReturn(
+      accountResponses,
+    )
+
+    batchTransactionService.createBatchTransaction(request = request)
+
+    val createTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
+    verify(generalLedgerApiClient, times(1)).postTransaction(
+      idempotencyKey = any(),
+      createTransactionRequest = createTransactionRequestCaptor.capture(),
+    )
+    val createTransactionRequest = createTransactionRequestCaptor.firstValue
+
+    val postings = createTransactionRequest.postings
+
+    val accountRefToSubAccountId = accountResponses.associate { acc -> acc.reference to acc.subAccounts.first().id }
+
+    assertThat(postings).hasSize(4)
+
+    assertThat(createTransactionRequest.amount).isEqualTo(300L)
+
+    val (prisonPosting, prisonersPostings) = postings.partition { posting -> posting.subAccountId == accountRefToSubAccountId["LEI"] }
+    assertThat(prisonPosting[0].amount).isEqualTo(300L)
+    assertTrue(prisonersPostings.all { it.amount == 100L })
+  }
+
+  @Test
+  fun `Should filter out prisoners without the subAccount and update the control amount`() {
+    val requestPostingType = CreatePostingRequest.Type.DR
+    val prisonerWithoutSubAccount = "XX123XZ"
+    val request = createBatchTransactionFormReq(
+      requestPostingType = requestPostingType,
+      prisonNumberPostings = listOf(
+        PrisonerPosting(
+          prisonNumber = "A1234AA",
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+        PrisonerPosting(
+          prisonNumber = "A1234BB",
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+        PrisonerPosting(
+          prisonNumber = prisonerWithoutSubAccount,
+          postingType = requestPostingType.opposite(),
+          amount = 100L,
+          prisonerSubAccountRef = "CASH",
+        ),
+      ),
+      controlAmount = 300L,
+    )
+
+    val references = request.prisonNumbersPostings.map { it.prisonNumber }.toMutableList()
+    references.add(request.caseloadId)
+
+    val filteredAccountResponses = buildAccountResponsesFromBatchTransactionRequest(request)
+      .filter { it.reference != prisonerWithoutSubAccount }
+
+    whenever(generalLedgerApiClient.searchAccountsByReferences(references)).thenReturn(
+      filteredAccountResponses,
+    )
+
+    batchTransactionService.createBatchTransaction(request = request)
+
+    val createTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
+    verify(generalLedgerApiClient, times(1)).postTransaction(
+      idempotencyKey = any(),
+      createTransactionRequest = createTransactionRequestCaptor.capture(),
+    )
+    val createTransactionRequest = createTransactionRequestCaptor.firstValue
+
+    val postings = createTransactionRequest.postings
+
+    val accountRefToSubAccountId = filteredAccountResponses.associate { acc -> acc.reference to acc.subAccounts.first().id }
+
+    assertThat(postings).hasSize(3)
+
+    assertThat(createTransactionRequest.amount).isEqualTo(200L)
+
+    val (prisonPosting, prisonersPostings) = postings.partition { posting -> posting.subAccountId == accountRefToSubAccountId["LEI"] }
+    assertThat(prisonPosting[0].amount).isEqualTo(200L)
+    assertTrue(prisonersPostings.all { it.amount == 100L })
   }
 }
