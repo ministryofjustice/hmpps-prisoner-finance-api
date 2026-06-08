@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
@@ -17,8 +16,6 @@ import java.util.UUID
 @Service
 class BatchTransactionService(
   private val generalLedgerApiClient: GeneralLedgerApiClient,
-  @Value("\${feature.general-ledger-api.whitelist.enabled:false}") private val generalLedgerWhitelistEnabled: Boolean,
-  @Value("\${feature.general-ledger-api.whitelist.test-prisoner-ids:DISABLED}") private val generalLedgerWhitelistPrisonerIds: List<String>,
 ) {
 
   private fun getSubAccountByRefOrNull(accountRef: String, accounts: List<AccountResponse>, subAccountRef: String): SubAccountResponse? {
@@ -54,10 +51,7 @@ class BatchTransactionService(
     // builds prisoners' postings
     request.prisonNumbersPostings.forEach { posting ->
       val prisonerSubAccount = prisonNumberToSubAccounts.getValue(posting.prisonNumber)
-      if (
-        prisonerSubAccount == null ||
-        (generalLedgerWhitelistEnabled && !generalLedgerWhitelistPrisonerIds.contains(posting.prisonNumber))
-      ) {
+      if (prisonerSubAccount == null) {
         transactionAmount -= posting.amount
       } else {
         val createdPostingRequest = CreatePostingRequest(

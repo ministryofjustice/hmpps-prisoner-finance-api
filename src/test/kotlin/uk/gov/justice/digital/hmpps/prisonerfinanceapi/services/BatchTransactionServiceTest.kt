@@ -2,11 +2,11 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
@@ -30,16 +30,8 @@ class BatchTransactionServiceTest {
   @Mock
   private lateinit var generalLedgerApiClient: GeneralLedgerApiClient
 
+  @InjectMocks
   private lateinit var batchTransactionService: BatchTransactionService
-
-  @BeforeEach
-  fun setup() {
-    batchTransactionService = BatchTransactionService(
-      generalLedgerApiClient,
-      false,
-      emptyList(),
-    )
-  }
 
   fun createBatchTransactionFormReq(
     requestPostingType: CreatePostingRequest.Type,
@@ -322,141 +314,6 @@ class BatchTransactionServiceTest {
     assertThat(correctSubAccountIds).hasSize(3)
 
     assertThat(postingSubAccountIds).containsExactlyInAnyOrderElementsOf(correctSubAccountIds)
-  }
-
-  @Test
-  fun `Should filter out prisoners not in the whitelist when enabled and update the control amount`() {
-    val whitelistedPrisoners = listOf("ABC123", "EFG456")
-    val notWhitelistedPrisoner = "NOT_IN_WHITELIST"
-    batchTransactionService = BatchTransactionService(
-      generalLedgerApiClient,
-      generalLedgerWhitelistEnabled = true,
-      generalLedgerWhitelistPrisonerIds = whitelistedPrisoners,
-    )
-
-    val requestPostingType = CreatePostingRequest.Type.DR
-    val request = createBatchTransactionFormReq(
-      requestPostingType = requestPostingType,
-      prisonNumberPostings = listOf(
-        PrisonerPosting(
-          prisonNumber = whitelistedPrisoners[0],
-          postingType = requestPostingType.opposite(),
-          amount = 100L,
-          prisonerSubAccountRef = "CASH",
-        ),
-        PrisonerPosting(
-          prisonNumber = whitelistedPrisoners[1],
-          postingType = requestPostingType.opposite(),
-          amount = 100L,
-          prisonerSubAccountRef = "CASH",
-        ),
-        PrisonerPosting(
-          prisonNumber = notWhitelistedPrisoner,
-          postingType = requestPostingType.opposite(),
-          amount = 100L,
-          prisonerSubAccountRef = "CASH",
-        ),
-      ),
-      controlAmount = 300L,
-    )
-
-    val references = request.prisonNumbersPostings.map { it.prisonNumber }.toMutableList()
-    references.add(request.caseloadId)
-
-    val accountResponses = buildAccountResponsesFromBatchTransactionRequest(request)
-
-    whenever(generalLedgerApiClient.searchAccountsByReferences(references)).thenReturn(
-      accountResponses,
-    )
-
-    batchTransactionService.createBatchTransaction(request = request)
-
-    val createTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
-    verify(generalLedgerApiClient, times(1)).postTransaction(
-      idempotencyKey = any(),
-      createTransactionRequest = createTransactionRequestCaptor.capture(),
-    )
-    val createTransactionRequest = createTransactionRequestCaptor.firstValue
-
-    val postings = createTransactionRequest.postings
-
-    val accountRefToSubAccountId = accountResponses.associate { acc -> acc.reference to acc.subAccounts.first().id }
-
-    assertThat(postings.firstOrNull { posting -> posting.subAccountId == accountRefToSubAccountId[notWhitelistedPrisoner] }).isNull()
-    assertThat(postings).hasSize(3)
-
-    assertThat(createTransactionRequest.amount).isEqualTo(200L)
-
-    val (prisonPosting, prisonersPostings) = postings.partition { posting -> posting.subAccountId == accountRefToSubAccountId["LEI"] }
-    assertThat(prisonPosting[0].amount).isEqualTo(200L)
-    assertTrue(prisonersPostings.all { it.amount == 100L })
-  }
-
-  @Test
-  fun `Should not filter out prisoners not in the whitelist when it's disabled`() {
-    val whitelistedPrisoners = listOf("ABC123", "EFG456")
-    val notWhitelistedPrisoner = "NOT_IN_WHITELIST"
-    batchTransactionService = BatchTransactionService(
-      generalLedgerApiClient,
-      generalLedgerWhitelistEnabled = false,
-      generalLedgerWhitelistPrisonerIds = whitelistedPrisoners,
-    )
-
-    val requestPostingType = CreatePostingRequest.Type.DR
-    val request = createBatchTransactionFormReq(
-      requestPostingType = requestPostingType,
-      prisonNumberPostings = listOf(
-        PrisonerPosting(
-          prisonNumber = whitelistedPrisoners[0],
-          postingType = requestPostingType.opposite(),
-          amount = 100L,
-          prisonerSubAccountRef = "CASH",
-        ),
-        PrisonerPosting(
-          prisonNumber = whitelistedPrisoners[1],
-          postingType = requestPostingType.opposite(),
-          amount = 100L,
-          prisonerSubAccountRef = "CASH",
-        ),
-        PrisonerPosting(
-          prisonNumber = notWhitelistedPrisoner,
-          postingType = requestPostingType.opposite(),
-          amount = 100L,
-          prisonerSubAccountRef = "CASH",
-        ),
-      ),
-      controlAmount = 300L,
-    )
-
-    val references = request.prisonNumbersPostings.map { it.prisonNumber }.toMutableList()
-    references.add(request.caseloadId)
-
-    val accountResponses = buildAccountResponsesFromBatchTransactionRequest(request)
-
-    whenever(generalLedgerApiClient.searchAccountsByReferences(references)).thenReturn(
-      accountResponses,
-    )
-
-    batchTransactionService.createBatchTransaction(request = request)
-
-    val createTransactionRequestCaptor = argumentCaptor<CreateTransactionRequest>()
-    verify(generalLedgerApiClient, times(1)).postTransaction(
-      idempotencyKey = any(),
-      createTransactionRequest = createTransactionRequestCaptor.capture(),
-    )
-    val createTransactionRequest = createTransactionRequestCaptor.firstValue
-
-    val postings = createTransactionRequest.postings
-
-    val accountRefToSubAccountId = accountResponses.associate { acc -> acc.reference to acc.subAccounts.first().id }
-
-    assertThat(postings).hasSize(4)
-
-    assertThat(createTransactionRequest.amount).isEqualTo(300L)
-
-    val (prisonPosting, prisonersPostings) = postings.partition { posting -> posting.subAccountId == accountRefToSubAccountId["LEI"] }
-    assertThat(prisonPosting[0].amount).isEqualTo(300L)
-    assertTrue(prisonersPostings.all { it.amount == 100L })
   }
 
   @Test
