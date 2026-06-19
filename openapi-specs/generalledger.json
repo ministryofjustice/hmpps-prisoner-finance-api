@@ -6,7 +6,7 @@
       "name" : "HMPPS Digital Studio",
       "email" : "feedback@digital.justice.gov.uk"
     },
-    "version" : "2026-06-08.506.d519e05"
+    "version" : "2026-06-17.525.2392af9"
   },
   "servers" : [ {
     "url" : "https://prisoner-finance-general-ledger-api-dev.hmpps.service.justice.gov.uk",
@@ -197,6 +197,25 @@
         "tags" : [ "Transaction Controller" ],
         "summary" : "Find a list of GL transactions by a list of UUIDs. If a transaction is not found, it is omitted from the results.",
         "operationId" : "searchTransactions",
+        "parameters" : [ {
+          "name" : "pageNumber",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
+        }, {
+          "name" : "pageSize",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -215,12 +234,9 @@
           "200" : {
             "description" : "Retrieve transactions",
             "content" : {
-              "application/json" : {
+              "*/*" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/SearchTransactionResponse"
-                  }
+                  "$ref" : "#/components/schemas/PagedResponseSearchTransactionResponse"
                 }
               }
             }
@@ -1702,6 +1718,37 @@
         },
         "required" : [ "status" ]
       },
+      "PagedResponseSearchTransactionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SearchTransactionResponse"
+            }
+          },
+          "pageNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "isLastPage" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "content", "isLastPage", "pageNumber", "pageSize", "totalElements", "totalPages" ]
+      },
       "SearchPostingResponse" : {
         "type" : "object",
         "description" : "A posting within a transaction",
@@ -1744,6 +1791,11 @@
             "format" : "uuid",
             "description" : "The ID of the account associated with the posting"
           },
+          "accountType" : {
+            "type" : "string",
+            "description" : "The account type, either Prison or Prisoner",
+            "enum" : [ "PRISONER", "PRISON" ]
+          },
           "accountReference" : {
             "type" : "string",
             "description" : "The reference of the account associated with the posting"
@@ -1754,7 +1806,7 @@
             "description" : "The entry sequence of the posting"
           }
         },
-        "required" : [ "accountID", "accountReference", "amount", "createdAt", "createdBy", "entrySequence", "id", "subAccountID", "subAccountReference", "type" ]
+        "required" : [ "accountID", "accountReference", "accountType", "amount", "createdAt", "createdBy", "entrySequence", "id", "subAccountID", "subAccountReference", "type" ]
       },
       "SearchTransactionResponse" : {
         "type" : "object",
