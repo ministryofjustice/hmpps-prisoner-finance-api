@@ -81,3 +81,4 @@ sonar-project.properties
 
 applicationinsights-agent-*.jar
 hmpps-prisoner-finance-api-*.jar
+.snyk
