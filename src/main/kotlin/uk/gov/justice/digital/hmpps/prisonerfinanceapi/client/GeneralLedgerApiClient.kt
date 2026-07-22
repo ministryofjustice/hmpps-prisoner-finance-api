@@ -1,19 +1,23 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.client
 
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClientResponseException
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.AccountControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.StatementControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.SubAccountControllerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.clients.generalledger.TransactionControllerApi
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.exceptions.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateAccountRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateSubAccountRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import java.time.LocalDate
 import java.util.UUID
@@ -45,6 +49,22 @@ class GeneralLedgerApiClient(
     }
   }
 
+  // GET /sub-accounts?reference={subRef}&accountReference={parentRef}
+  fun findSubAccount(parentReference: String, subAccountReference: String): SubAccountResponse? = subAccountApi.findSubAccounts(subAccountReference, parentReference)
+    .block()
+    ?.firstOrNull()
+
+  // POST /accounts
+  fun createAccount(reference: String, type: CreateAccountRequest.Type): AccountResponse {
+    log.info("Creating Account for ref: $reference")
+
+    val request = CreateAccountRequest(accountReference = reference, type = type)
+
+    return accountApi.createAccount(request)
+      .block()
+      ?: throw IllegalStateException("Received null response when creating account $reference")
+  }
+
   fun getAccountBalance(accountUUID: UUID): AccountBalanceResponse = handleExceptions(
     {
       accountApi.getAccountBalance(accountUUID).block()
@@ -72,6 +92,17 @@ class GeneralLedgerApiClient(
         ?: throw IllegalStateException("Received null response when retrieving account by reference $prisonerNumber")
     },
   )
+
+  // POST /accounts/{parentId}/sub-accounts
+  fun createSubAccount(parentId: UUID, subAccountReference: String): SubAccountResponse {
+    log.info("Creating Sub-Account $subAccountReference for Parent UUID $parentId")
+
+    val request = CreateSubAccountRequest(subAccountReference = subAccountReference)
+
+    return subAccountApi.createSubAccount(parentId, request)
+      .block()
+      ?: throw IllegalStateException("Received null response when creating sub-account $subAccountReference")
+  }
 
   fun getListOfTransactionsByAccountId(accountId: UUID): List<PrisonerTransactionListResponse> = handleExceptions(
     {
@@ -114,4 +145,8 @@ class GeneralLedgerApiClient(
       }
     },
   )
+
+  private companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+  }
 }

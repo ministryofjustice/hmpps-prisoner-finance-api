@@ -9,10 +9,31 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubA
 import java.util.UUID
 
 @Service
-class AccountService(@Autowired private val generalLedgerApiClient: GeneralLedgerApiClient) {
+class AccountService(
+  @Autowired private val generalLedgerApiClient: GeneralLedgerApiClient,
+  @Autowired private val generalLedgerAccountResolver: GeneralLedgerAccountResolver,
+) {
+
+  private enum class GeneralLedgerSubAccounts {
+    CASH,
+    SAVINGS,
+    SPENDS,
+  }
+
   fun getAccountByReference(accountReference: String): AccountResponse? = generalLedgerApiClient.getAccountByRef(accountReference).firstOrNull()
 
   fun getAccountBalance(accountUUID: UUID): AccountBalanceResponse = generalLedgerApiClient.getAccountBalance(accountUUID)
 
   fun getSubAccountBalance(accountUUID: UUID): SubAccountBalanceResponse = generalLedgerApiClient.getSubAccountBalance(accountUUID)
+
+  fun createPrisonerSubAccounts(prisonNumber: String) {
+    val parentAccount = generalLedgerAccountResolver.getOrCreateParentAccount(prisonNumber)
+
+    val subAccountsByRef = parentAccount.subAccounts.associateBy { it.reference }
+    for (subAccountReference in GeneralLedgerSubAccounts.entries.map { it.name }) {
+      if (!subAccountsByRef.containsKey(subAccountReference)) {
+        generalLedgerAccountResolver.getOrCreateSubAccount(parentAccount, subAccountReference)
+      }
+    }
+  }
 }

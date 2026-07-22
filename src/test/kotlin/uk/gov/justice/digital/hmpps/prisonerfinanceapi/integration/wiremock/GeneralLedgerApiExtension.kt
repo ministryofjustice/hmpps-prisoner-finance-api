@@ -7,7 +7,9 @@ import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.any
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
+import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
@@ -66,6 +69,53 @@ class GeneralLedgerApiMockServer :
           .withBody(if (status == 200) """{"status":"UP"}""" else """{"status":"DOWN"}""")
           .withStatus(status),
       ),
+    )
+  }
+
+  // POST /accounts -> Returns Single AccountResponse
+  fun stubCreateAccount(reference: String, returnUuid: UUID = UUID.randomUUID()) {
+    val type = if (reference.length > 3) AccountResponse.Type.PRISONER else AccountResponse.Type.PRISON
+
+    val response = AccountResponse(
+      id = returnUuid,
+      reference = reference,
+      createdAt = Instant.now(),
+      createdBy = "MOCK_USER",
+      subAccounts = emptyList(),
+      type = type,
+    )
+
+    stubFor(
+      post(urlEqualTo("/accounts"))
+        .withRequestBody(matchingJsonPath("$.accountReference", equalTo(reference)))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .withStatus(201)
+            .withBody(mapper.writeValueAsString(response)),
+        ),
+    )
+  }
+
+  // POST /accounts/{uuid}/sub-accounts -> Returns Single SubAccount
+  fun stubCreateSubAccount(parentId: UUID, reference: String, returnUuid: String = UUID.randomUUID().toString()) {
+    val response = SubAccountResponse(
+      id = UUID.fromString(returnUuid),
+      parentAccountId = parentId,
+      reference = reference,
+      createdAt = Instant.now(),
+      createdBy = "MOCK_USER",
+    )
+
+    stubFor(
+      post(urlEqualTo("/accounts/$parentId/sub-accounts"))
+        .withRequestBody(matchingJsonPath("$.subAccountReference", equalTo(reference)))
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .withStatus(201)
+            .withBody(mapper.writeValueAsString(response)),
+        ),
     )
   }
 
@@ -175,6 +225,23 @@ class GeneralLedgerApiMockServer :
         ),
     )
   }
+
+  fun stubGetAccountListWithAccountReturningAnEmptyList(accountRef: String) {
+    generalLedgerApi.stubFor(
+      get("/accounts?reference=$accountRef")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              mapper.writeValueAsString(
+                emptyList<AccountResponse>(),
+              ),
+            )
+            .withStatus(200),
+        ),
+    )
+  }
+
   fun stubGetAccountListWithAccount(accountRef: String, returnAccountId: UUID, subAccounts: List<SubAccountResponse> = emptyList()) {
     generalLedgerApi.stubFor(
       get("/accounts?reference=$accountRef")
