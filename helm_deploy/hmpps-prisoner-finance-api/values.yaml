@@ -44,6 +44,11 @@ generic-service:
       GENERAL_LEDGER_API_CLIENT_ID: 'API_CLIENT_ID'
       GENERAL_LEDGER_API_CLIENT_SECRET: 'API_CLIENT_SECRET'
 
+    domain-events-prisoner-finance-queue:
+      HMPPS_SQS_QUEUES_DOMAINEVENTS_QUEUE_NAME: "sqs_queue_name"
+
+    domain-events-prisoner-finance-dlq:
+      HMPPS_SQS_QUEUES_DOMAINEVENTS_DLQ_NAME: "sqs_queue_name"
 
   allowlist:
     groups:
