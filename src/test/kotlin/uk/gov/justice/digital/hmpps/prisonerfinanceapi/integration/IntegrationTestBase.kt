@@ -17,7 +17,10 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Hmpp
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
 @ExtendWith(HmppsAuthApiExtension::class, GeneralLedgerApiExtension::class)
-@SpringBootTest(webEnvironment = RANDOM_PORT)
+@SpringBootTest(
+  webEnvironment = RANDOM_PORT,
+  properties = ["spring.autoconfigure.exclude=uk.gov.justice.hmpps.sqs.HmppsSqsConfiguration"],
+)
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient
 abstract class IntegrationTestBase {

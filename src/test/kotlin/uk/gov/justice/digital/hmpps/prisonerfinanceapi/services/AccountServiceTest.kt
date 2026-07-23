@@ -18,6 +18,8 @@ class AccountServiceTest {
 
   @Mock private lateinit var generalLedgerApiClient: GeneralLedgerApiClient
 
+  @Mock private lateinit var generalLedgerAccountResolver: GeneralLedgerAccountResolver
+
   @InjectMocks private lateinit var accountService: AccountService
 
   @Nested

@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.prisonerfinanceapi
+package uk.gov.justice.digital.hmpps.prisonerfinanceapi.exceptions
 
 import org.springframework.http.HttpStatusCode
 
