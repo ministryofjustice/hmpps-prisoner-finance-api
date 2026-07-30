@@ -24,7 +24,6 @@ class TransactionIntegrationTest : IntegrationTestBase() {
   inner class CreateTransaction {
 
     fun stubPostTransaction(creditSubAccountId: UUID, debitSubAccountId: UUID, amount: Long, description: String): TransactionResponse {
-
       val transactionId = UUID.randomUUID()
 
       val payload = TransactionResponse(
