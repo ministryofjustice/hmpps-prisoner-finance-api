@@ -20,4 +20,6 @@ data class PrisonerTransactionResponse(
   val subAccountBalance: Long?,
   @field:Schema(description = "Running overall account balance of the account")
   val accountBalance: Long?,
+  @field:Schema(description = "The legacy transaction ID from NOMIS")
+  val legacyTransactionId: Long?,
 )
