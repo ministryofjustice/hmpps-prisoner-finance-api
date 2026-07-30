@@ -43,6 +43,7 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
         accountType = statementEntryResponse.subAccount.reference,
         subAccountBalance = statementEntryResponse.subAccountBalance,
         accountBalance = statementEntryResponse.accountBalance,
+        legacyTransactionId = statementEntryResponse.legacyTransactionId,
       )
     }
 
@@ -104,6 +105,7 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
       amount = createTransactionFormRequest.amount,
       postings = postings,
       entrySequence = 1,
+
     )
 
     val createdTransaction = generalLedgerApiClient.postTransaction(idempotencyKey, createTransactionRequest)

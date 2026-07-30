@@ -141,6 +141,7 @@ class BatchTransactionIntegrationTest : IntegrationTestBase() {
       generalLedgerApi.stubPostTransaction(
         TransactionResponse(
           id = transactionId,
+          legacyTransactionId = 999,
           createdBy = "TEST",
           createdAt = Instant.now(),
           reference = grantBonusForm.description,
@@ -188,6 +189,7 @@ class BatchTransactionIntegrationTest : IntegrationTestBase() {
       assertThat(response.amount).isEqualTo(grantBonusForm.controlAmount)
       assertThat(response.postings.size).isEqualTo(3)
       assertThat(response.id).isEqualTo(transactionId)
+      assertThat(response.legacyTransactionId).isEqualTo(999)
     }
 
     @Test
