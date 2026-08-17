@@ -6,36 +6,43 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.health.GeneralLedgerApiHealthPing
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.CprPersonCreated
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.Event
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsDomainEvent
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsMergeEvent
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
+import java.util.UUID
+import java.time.Instant
 
 @Service
 class DomainEventSubscriber(
   @Autowired private val accountService: AccountService,
 ) {
 
+  @Autowired
+  private lateinit var transactionService: TransactionService
+
+  @Autowired
+  private lateinit var generalLedgerApi: GeneralLedgerApiHealthPing
   private val objectMapper = ObjectMapper()
 
   @SqsListener("domainevents", factory = "hmppsQueueContainerFactoryProxy")
   fun handleEvents(requestJson: String?) {
     try {
+      println("Received event: $requestJson")
       val event = objectMapper.readValue(requestJson, Event::class.java)
       val domainEvent = objectMapper.readValue(event.message, HmppsDomainEvent::class.java)
 
       when (domainEvent.eventType) {
+        PRISONER_ACCOUNT_MERGED -> {
+          mergeAPrisonerAccount(event)
+        }
         PRISON_RECORD_CREATED -> {
-          val personCreated = objectMapper.readValue(event.message, CprPersonCreated::class.java)
-          log.info("Received CPR person created event: $personCreated")
-
-          val prisonNumber = personCreated.personReference.identifiers?.firstOrNull { it.type == "prisonNumber" }?.value
-
-          if (prisonNumber == null) {
-            log.error("No prison number found in CPR person created event: $personCreated")
-            throw IllegalStateException("No prison number found in CPR person created event: $personCreated")
-          }
-          accountService.createPrisonerSubAccounts(prisonNumber)
+          createAPrisonerAccount(event)
         }
         else -> {
           log.warn("Ignored unexpected event type: ${domainEvent.eventType}")
@@ -47,9 +54,67 @@ class DomainEventSubscriber(
     }
   }
 
+  private fun mergeAPrisonerAccount(event: Event) {
+    val prisonerMerged = objectMapper.readValue(event.message, HmppsMergeEvent::class.java)
+
+    log.info("Received prisoner merged event: $prisonerMerged")
+
+    val accountToKeep = accountService.getAccountByReference(prisonerMerged.additionalInformation.nomsNumber)
+    val accountToRemove = accountService.getAccountByReference(prisonerMerged.additionalInformation.removedNomsNumber)
+
+    val accountTypes = listOf("CASH","SAVINGS","SPENDS")
+
+    val accountIdsToRemoveAndToKeep : List<Pair<UUID, UUID>> = accountTypes.map{accountType ->
+      val subAccountToRemove = accountToRemove?.subAccounts?.find{it.reference == accountType }!!.id
+      val subAccountToKeep = accountToKeep?.subAccounts?.find{it.reference == accountType }!!.id
+      Pair(subAccountToRemove, subAccountToKeep)
+    }
+
+    accountIdsToRemoveAndToKeep.forEach {(subAccountToRemove, subAccountToKeep) ->
+      val subAccountFinalBalance = accountService.getSubAccountBalance(subAccountToRemove).amount
+      val adjustmentTxn = CreateTransactionRequest(
+        reference = "",
+        description = "ADJ - MERGED",
+        timestamp = Instant.now(),
+        amount = subAccountFinalBalance,
+        entrySequence = 1,
+        postings = listOf(CreatePostingRequest(
+          subAccountId = subAccountToRemove,
+          type = CreatePostingRequest.Type.DR,
+          amount = subAccountFinalBalance,
+          entrySequence = 1
+        ),CreatePostingRequest(
+          subAccountId = subAccountToKeep,
+          type = CreatePostingRequest.Type.CR,
+          amount = subAccountFinalBalance,
+          entrySequence = 2
+        )),
+        legacyTransactionId = null
+      )
+
+      //TODO: Make it work
+
+    }
+  }
+
+  private fun createAPrisonerAccount(event: Event){
+    val personCreated = objectMapper.readValue(event.message, CprPersonCreated::class.java)
+    log.info("Received CPR person created event: $personCreated")
+
+    val prisonNumber = personCreated.personReference.identifiers?.firstOrNull { it.type == "prisonNumber" }?.value
+
+    if (prisonNumber == null) {
+      log.error("No prison number found in CPR person created event: $personCreated")
+      throw IllegalStateException("No prison number found in CPR person created event: $personCreated")
+    }
+    accountService.createPrisonerSubAccounts(prisonNumber)
+  }
+
+
   companion object {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
-
+    // These must be configured in the application YAML subscribeFilter
     const val PRISON_RECORD_CREATED = "core-person-record.prison.record.created"
+    const val PRISONER_ACCOUNT_MERGED = "prison-offender-events.prisoner.merged"
   }
 }

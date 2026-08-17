@@ -24,7 +24,7 @@ class AccountService(
 
   fun getAccountBalance(accountUUID: UUID): AccountBalanceResponse = generalLedgerApiClient.getAccountBalance(accountUUID)
 
-  fun getSubAccountBalance(accountUUID: UUID): SubAccountBalanceResponse = generalLedgerApiClient.getSubAccountBalance(accountUUID)
+  fun getSubAccountBalance(subAccountUUID: UUID): SubAccountBalanceResponse = generalLedgerApiClient.getSubAccountBalance(subAccountUUID)
 
   fun createPrisonerSubAccounts(prisonNumber: String) {
     val parentAccount = generalLedgerAccountResolver.getOrCreateParentAccount(prisonNumber)

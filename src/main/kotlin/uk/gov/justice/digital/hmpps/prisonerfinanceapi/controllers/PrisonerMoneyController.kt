@@ -247,7 +247,7 @@ class PrisonerMoneyController(
     val subAccountId = account.subAccounts.firstOrNull { acc -> acc.reference == subAccountReference }?.id
       ?: throw CustomException(status = HttpStatus.NOT_FOUND, message = "Sub account not found")
 
-    val balance = accountService.getSubAccountBalance(accountUUID = subAccountId)
+    val balance = accountService.getSubAccountBalance(subAccountUUID = subAccountId)
 
     return ResponseEntity.ok(balance)
   }

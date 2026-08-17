@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 open class HmppsDomainEvent(
   @JsonProperty("eventType") open val eventType: String,
 )
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CprPersonCreated(
   @JsonProperty("eventType")
@@ -42,4 +41,22 @@ data class PersonIdentifier(
 data class Event(
   @JsonProperty("Message")
   val message: String,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class HmppsMergeEvent(
+  @JsonProperty("eventType")
+  override val eventType: String,
+  @JsonProperty("additionalInformation")
+  val additionalInformation: AdditionalInformation,
+) : HmppsDomainEvent(eventType)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class AdditionalInformation(
+  @JsonProperty("nomsNumber")
+  val nomsNumber: String,
+  @JsonProperty("removedNomsNumber")
+  val removedNomsNumber: String,
+  @JsonProperty("reason")
+  val reason: String? = null,
 )
