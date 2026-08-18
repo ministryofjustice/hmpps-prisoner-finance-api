@@ -337,7 +337,7 @@ class GeneralLedgerApiMockServer :
     )
   }
 
-  fun stubPostTransactionForRequest(request : CreateTransactionRequest, payload: TransactionResponse) {
+  fun stubPostTransactionForRequest(request: CreateTransactionRequest, payload: TransactionResponse) {
     val expectedNode = mapper.valueToTree<ObjectNode>(request)
     expectedNode.remove("timestamp")
 
@@ -345,7 +345,8 @@ class GeneralLedgerApiMockServer :
 
     generalLedgerApi.stubFor(
       post("/transactions").withRequestBody(
-        equalToJson( expectedJson,   false,  true))
+        equalToJson(expectedJson, false, true),
+      )
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")

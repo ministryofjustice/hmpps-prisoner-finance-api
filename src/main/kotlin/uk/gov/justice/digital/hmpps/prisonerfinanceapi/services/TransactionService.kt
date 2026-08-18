@@ -112,4 +112,6 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
 
     return createdTransaction
   }
+
+  fun postTransaction(idempotencyKey: UUID, createTransactionRequest: CreateTransactionRequest): TransactionResponse? = generalLedgerApiClient.postTransaction(idempotencyKey, createTransactionRequest)
 }

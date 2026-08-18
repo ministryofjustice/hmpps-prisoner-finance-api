@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 open class HmppsDomainEvent(
   @JsonProperty("eventType") open val eventType: String,
 )
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CprPersonCreated(
   @JsonProperty("eventType")

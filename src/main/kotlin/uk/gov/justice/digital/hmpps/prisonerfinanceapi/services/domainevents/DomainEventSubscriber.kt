@@ -15,8 +15,9 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Crea
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
-import java.util.UUID
 import java.time.Instant
+import java.util.UUID
+import kotlin.math.abs
 
 @Service
 class DomainEventSubscriber(
@@ -62,42 +63,55 @@ class DomainEventSubscriber(
     val accountToKeep = accountService.getAccountByReference(prisonerMerged.additionalInformation.nomsNumber)
     val accountToRemove = accountService.getAccountByReference(prisonerMerged.additionalInformation.removedNomsNumber)
 
-    val accountTypes = listOf("CASH","SAVINGS","SPENDS")
+    val accountTypes = listOf("CASH", "SAVINGS", "SPENDS")
 
-    val accountIdsToRemoveAndToKeep : List<Pair<UUID, UUID>> = accountTypes.map{accountType ->
-      val subAccountToRemove = accountToRemove?.subAccounts?.find{it.reference == accountType }!!.id
-      val subAccountToKeep = accountToKeep?.subAccounts?.find{it.reference == accountType }!!.id
+    val accountIdsToRemoveAndToKeep: List<Pair<UUID, UUID>> = accountTypes.map { accountType ->
+      val subAccountToRemove = accountToRemove?.subAccounts?.find { it.reference == accountType }!!.id
+      val subAccountToKeep = accountToKeep?.subAccounts?.find { it.reference == accountType }!!.id
       Pair(subAccountToRemove, subAccountToKeep)
     }
 
-    accountIdsToRemoveAndToKeep.forEach {(subAccountToRemove, subAccountToKeep) ->
+    accountIdsToRemoveAndToKeep.forEach { (subAccountToRemove, subAccountToKeep) ->
+
       val subAccountFinalBalance = accountService.getSubAccountBalance(subAccountToRemove).amount
-      val adjustmentTxn = CreateTransactionRequest(
-        reference = "",
-        description = "ADJ - MERGED",
-        timestamp = Instant.now(),
-        amount = subAccountFinalBalance,
-        entrySequence = 1,
-        postings = listOf(CreatePostingRequest(
-          subAccountId = subAccountToRemove,
-          type = CreatePostingRequest.Type.DR,
-          amount = subAccountFinalBalance,
-          entrySequence = 1
-        ),CreatePostingRequest(
-          subAccountId = subAccountToKeep,
-          type = CreatePostingRequest.Type.CR,
-          amount = subAccountFinalBalance,
-          entrySequence = 2
-        )),
-        legacyTransactionId = null
-      )
 
-      //TODO: Make it work
+      if (subAccountFinalBalance != 0L) {
+        val adjustmentDescription = "ADJ - MERGED FROM ${prisonerMerged.additionalInformation.removedNomsNumber} TO ${prisonerMerged.additionalInformation.nomsNumber}"
 
+        val absBalance = abs(subAccountFinalBalance)
+
+        val debitingAccount = if (subAccountFinalBalance > 0) subAccountToRemove else subAccountToKeep
+        val creditingAccount = if (subAccountFinalBalance > 0) subAccountToKeep else subAccountToRemove
+
+        val adjustmentTxn = CreateTransactionRequest(
+          reference = "",
+          description = adjustmentDescription,
+          timestamp = Instant.now(),
+          amount = absBalance,
+          entrySequence = 1,
+          postings = listOf(
+            CreatePostingRequest(
+              subAccountId = debitingAccount,
+              type = CreatePostingRequest.Type.DR,
+              amount = absBalance,
+              entrySequence = 1,
+            ),
+            CreatePostingRequest(
+              subAccountId = creditingAccount,
+              type = CreatePostingRequest.Type.CR,
+              amount = absBalance,
+              entrySequence = 2,
+            ),
+          ),
+          legacyTransactionId = null,
+        )
+
+        transactionService.postTransaction(UUID.randomUUID(), adjustmentTxn)
+      }
     }
   }
 
-  private fun createAPrisonerAccount(event: Event){
+  private fun createAPrisonerAccount(event: Event) {
     val personCreated = objectMapper.readValue(event.message, CprPersonCreated::class.java)
     log.info("Received CPR person created event: $personCreated")
 
@@ -110,9 +124,9 @@ class DomainEventSubscriber(
     accountService.createPrisonerSubAccounts(prisonNumber)
   }
 
-
   companion object {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
+
     // These must be configured in the application YAML subscribeFilter
     const val PRISON_RECORD_CREATED = "core-person-record.prison.record.created"
     const val PRISONER_ACCOUNT_MERGED = "prison-offender-events.prisoner.merged"
