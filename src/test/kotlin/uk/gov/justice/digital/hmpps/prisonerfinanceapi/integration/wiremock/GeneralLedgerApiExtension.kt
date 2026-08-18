@@ -1,11 +1,13 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.any
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
@@ -22,6 +24,7 @@ import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
@@ -322,6 +325,28 @@ class GeneralLedgerApiMockServer :
   fun stubPostTransaction(payload: TransactionResponse) {
     generalLedgerApi.stubFor(
       post("/transactions")
+        .willReturn(
+          aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              mapper.writeValueAsString(
+                payload,
+              ),
+            ).withStatus(200),
+        ),
+    )
+  }
+
+  fun stubPostTransactionForRequest(request: CreateTransactionRequest, payload: TransactionResponse) {
+    val expectedNode = mapper.valueToTree<ObjectNode>(request)
+    expectedNode.remove("timestamp")
+
+    val expectedJson = mapper.writeValueAsString(expectedNode)
+
+    generalLedgerApi.stubFor(
+      post("/transactions").withRequestBody(
+        equalToJson(expectedJson, false, true),
+      )
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
