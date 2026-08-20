@@ -37,7 +37,14 @@ class AccountService(
     }
   }
 
-  fun verifyOrRepairAccount(accountReference: String) {
-    val account = this.getAccountByReference(accountReference)
+  fun verifyOrRepairAccount(accountReference: String): AccountResponse {
+    var account = generalLedgerAccountResolver.getOrCreateParentAccount(accountReference)
+
+    if (account.subAccounts.size != 3) {
+      this.createPrisonerSubAccounts(accountReference)
+      account = generalLedgerAccountResolver.getOrCreateParentAccount(accountReference)
+    }
+
+    return account
   }
 }

@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import java.time.Instant
 import java.util.UUID
 
@@ -51,15 +52,80 @@ class AccountServiceTest {
 
   @Nested
   inner class VerifyOrRepairAccount {
-    @Test
-    fun `If an account has all subaccounts, do nothing`() {
 
+    @Test
+    fun `If an account has all subaccounts return the account`() {
+      val prisonNumber = "A1234AA"
+      val accountUUID = UUID.randomUUID()
+
+      val subAccounts = listOf(
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = "CASH",
+          parentAccountId = accountUUID,
+          createdBy = "TEST_USER",
+          createdAt = Instant.now(),
+        ),
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = "SPENDS",
+          parentAccountId = accountUUID,
+          createdBy = "TEST_USER",
+          createdAt = Instant.now(),
+        ),
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = "SAVINGS",
+          parentAccountId = accountUUID,
+          createdBy = "TEST_USER",
+          createdAt = Instant.now(),
+        ),
+      )
+
+      val account = AccountResponse(id = accountUUID, reference = prisonNumber, type = AccountResponse.Type.PRISONER, createdAt = Instant.now(), createdBy = "", subAccounts = subAccounts)
+
+      whenever(generalLedgerAccountResolver.getOrCreateParentAccount(prisonNumber)).thenReturn(account)
+      val result = accountService.verifyOrRepairAccount(prisonNumber)
+
+      assertThat(result).isEqualTo(account)
     }
 
     @Test
-    fun `If subaccounts are missing from an account, create the missing subaccounts`() {}
+    fun `If an account does not exist, then create the account with all subaccounts and return it`() {
+      val prisonNumber = "A1234AA"
+      val accountUUID = UUID.randomUUID()
 
-    @Test
-    fun `If an account is missing, create the account`() {}
+      val subAccounts = listOf(
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = "CASH",
+          parentAccountId = accountUUID,
+          createdBy = "TEST_USER",
+          createdAt = Instant.now(),
+        ),
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = "SAVINGS",
+          parentAccountId = accountUUID,
+          createdBy = "TEST_USER",
+          createdAt = Instant.now(),
+        ),
+        SubAccountResponse(
+          id = UUID.randomUUID(),
+          reference = "SPENDS",
+          parentAccountId = accountUUID,
+          createdBy = "TEST_USER",
+          createdAt = Instant.now(),
+        ),
+      )
+
+      val accountWithSubAccounts = AccountResponse(id = accountUUID, reference = prisonNumber, type = AccountResponse.Type.PRISONER, createdAt = Instant.now(), createdBy = "", subAccounts = subAccounts)
+      val accountWithoutSubAccounts = AccountResponse(id = accountUUID, reference = prisonNumber, type = AccountResponse.Type.PRISONER, createdAt = Instant.now(), createdBy = "", subAccounts = emptyList())
+
+      whenever(generalLedgerAccountResolver.getOrCreateParentAccount(prisonNumber)).thenReturn(accountWithoutSubAccounts, accountWithSubAccounts)
+
+      val result = accountService.verifyOrRepairAccount(prisonNumber)
+      assertThat(result).isEqualTo(accountWithSubAccounts)
+    }
   }
 }
