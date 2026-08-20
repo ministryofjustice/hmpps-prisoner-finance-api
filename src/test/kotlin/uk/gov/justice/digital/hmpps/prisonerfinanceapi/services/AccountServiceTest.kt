@@ -48,4 +48,18 @@ class AccountServiceTest {
       assertThat(result).isEqualTo(account)
     }
   }
+
+  @Nested
+  inner class VerifyOrRepairAccount {
+    @Test
+    fun `If an account has all subaccounts, do nothing`() {
+
+    }
+
+    @Test
+    fun `If subaccounts are missing from an account, create the missing subaccounts`() {}
+
+    @Test
+    fun `If an account is missing, create the account`() {}
+  }
 }

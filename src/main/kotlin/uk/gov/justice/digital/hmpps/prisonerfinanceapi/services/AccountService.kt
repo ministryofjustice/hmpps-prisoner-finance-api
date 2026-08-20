@@ -36,4 +36,8 @@ class AccountService(
       }
     }
   }
+
+  fun verifyOrRepairAccount(accountReference: String) {
+    val account = this.getAccountByReference(accountReference)
+  }
 }
