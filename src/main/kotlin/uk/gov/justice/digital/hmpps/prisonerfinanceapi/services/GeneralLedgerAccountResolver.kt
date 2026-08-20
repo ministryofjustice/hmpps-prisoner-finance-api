@@ -34,7 +34,6 @@ class GeneralLedgerAccountResolver(
           return apiClient.getAccountByRef(reference).firstOrNull()
             ?: throw RetryAfterConflictException("Account not found after server responded with 409 for reference: $reference")
         } else {
-          println(e.responseBodyAsString)
           throw e
         }
       }
