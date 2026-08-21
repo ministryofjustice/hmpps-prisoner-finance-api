@@ -34,7 +34,7 @@ class AccountService(
     val subAccountsByRef = parentAccount.subAccounts.associateBy { it.reference }
     for (subAccountReference in GeneralLedgerSubAccounts.entries.map { it.name }) {
       if (!subAccountsByRef.containsKey(subAccountReference)) {
-        parentAccount = generalLedgerAccountResolver.getOrCreateSubAccount(parentAccount, subAccountReference)
+        parentAccount = generalLedgerAccountResolver.createSubAccountAndAddToParent(parentAccount, subAccountReference)
       }
     }
 

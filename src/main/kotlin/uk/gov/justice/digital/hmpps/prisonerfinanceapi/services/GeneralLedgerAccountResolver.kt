@@ -40,7 +40,7 @@ class GeneralLedgerAccountResolver(
     }
   }
 
-  fun getOrCreateSubAccount(
+  fun createSubAccountAndAddToParent(
     parent: AccountResponse,
     subRef: String,
   ): AccountResponse {

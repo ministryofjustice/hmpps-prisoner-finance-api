@@ -133,7 +133,7 @@ class GeneralLedgerAccountResolverTest {
     fun `should return parent account unmodified if sub-account already exists in parent`() {
       val parentWithSub = accountResponse.copy(subAccounts = listOf(subAccountResponse))
 
-      val result = accountResolver.getOrCreateSubAccount(parentWithSub, subReference)
+      val result = accountResolver.createSubAccountAndAddToParent(parentWithSub, subReference)
 
       assertThat(result).isEqualTo(parentWithSub)
       verify(apiClient, never()).createSubAccount(any(), anyString())
@@ -143,7 +143,7 @@ class GeneralLedgerAccountResolverTest {
     fun `should create sub-account and return updated parent if not found`() {
       whenever(apiClient.createSubAccount(parentAccountId, subReference)).thenReturn(subAccountResponse)
 
-      val result = accountResolver.getOrCreateSubAccount(accountResponse, subReference)
+      val result = accountResolver.createSubAccountAndAddToParent(accountResponse, subReference)
 
       assertThat(result.subAccounts).hasSize(1)
       assertThat(result.subAccounts.first()).isEqualTo(subAccountResponse)
@@ -158,7 +158,7 @@ class GeneralLedgerAccountResolverTest {
       whenever(apiClient.createSubAccount(parentAccountId, subReference)).thenThrow(conflictException)
       whenever(apiClient.findSubAccount(prisonNumber, subReference)).thenReturn(subAccountResponse)
 
-      val result = accountResolver.getOrCreateSubAccount(accountResponse, subReference)
+      val result = accountResolver.createSubAccountAndAddToParent(accountResponse, subReference)
 
       assertThat(result.subAccounts).hasSize(1)
       assertThat(result.subAccounts.first()).isEqualTo(subAccountResponse)
@@ -174,7 +174,7 @@ class GeneralLedgerAccountResolverTest {
       whenever(apiClient.findSubAccount(prisonNumber, subReference)).thenReturn(null)
 
       val exception = assertThrows<RetryAfterConflictException> {
-        accountResolver.getOrCreateSubAccount(accountResponse, subReference)
+        accountResolver.createSubAccountAndAddToParent(accountResponse, subReference)
       }
 
       assertThat(exception.message).contains("Sub account not found after server responded with 409 for reference: $subReference")
@@ -188,7 +188,7 @@ class GeneralLedgerAccountResolverTest {
       whenever(apiClient.createSubAccount(parentAccountId, subReference)).thenThrow(badRequestException)
 
       assertThrows<WebClientResponseException> {
-        accountResolver.getOrCreateSubAccount(accountResponse, subReference)
+        accountResolver.createSubAccountAndAddToParent(accountResponse, subReference)
       }
     }
   }
