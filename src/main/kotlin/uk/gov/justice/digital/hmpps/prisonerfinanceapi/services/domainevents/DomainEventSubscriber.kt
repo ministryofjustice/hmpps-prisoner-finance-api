@@ -60,14 +60,14 @@ class DomainEventSubscriber(
 
     log.info("Received prisoner merged event: $prisonerMerged")
 
-    val accountToKeep = accountService.getAccountByReference(prisonerMerged.additionalInformation.nomsNumber)
-    val accountToRemove = accountService.getAccountByReference(prisonerMerged.additionalInformation.removedNomsNumber)
+    val accountToKeep = accountService.getOrCreatePrisonerAccountStructure(prisonerMerged.additionalInformation.nomsNumber)
+    val accountToRemove = accountService.getOrCreatePrisonerAccountStructure(prisonerMerged.additionalInformation.removedNomsNumber)
 
     val accountTypes = listOf("CASH", "SAVINGS", "SPENDS")
 
     val accountIdsToRemoveAndToKeep: List<Pair<UUID, UUID>> = accountTypes.map { accountType ->
-      val subAccountToRemove = accountToRemove?.subAccounts?.find { it.reference == accountType }!!.id
-      val subAccountToKeep = accountToKeep?.subAccounts?.find { it.reference == accountType }!!.id
+      val subAccountToRemove = accountToRemove.subAccounts.find { it.reference == accountType }!!.id
+      val subAccountToKeep = accountToKeep.subAccounts.find { it.reference == accountType }!!.id
       Pair(subAccountToRemove, subAccountToKeep)
     }
 
@@ -121,7 +121,7 @@ class DomainEventSubscriber(
       log.error("No prison number found in CPR person created event: $personCreated")
       throw IllegalStateException("No prison number found in CPR person created event: $personCreated")
     }
-    accountService.createPrisonerSubAccounts(prisonNumber)
+    accountService.getOrCreatePrisonerAccountStructure(prisonNumber)
   }
 
   companion object {
