@@ -26,25 +26,18 @@ class AccountService(
 
   fun getSubAccountBalance(subAccountUUID: UUID): SubAccountBalanceResponse = generalLedgerApiClient.getSubAccountBalance(subAccountUUID)
 
-  fun createPrisonerSubAccounts(prisonNumber: String) {
-    val parentAccount = generalLedgerAccountResolver.getOrCreateParentAccount(prisonNumber)
+  fun getOrCreatePrisonerAccountStructure(prisonNumber: String): AccountResponse {
+    var parentAccount = generalLedgerAccountResolver.getOrCreateParentAccount(prisonNumber)
+
+    if (parentAccount.subAccounts.size == GeneralLedgerSubAccounts.entries.size) return parentAccount
 
     val subAccountsByRef = parentAccount.subAccounts.associateBy { it.reference }
     for (subAccountReference in GeneralLedgerSubAccounts.entries.map { it.name }) {
       if (!subAccountsByRef.containsKey(subAccountReference)) {
-        generalLedgerAccountResolver.getOrCreateSubAccount(parentAccount, subAccountReference)
+        parentAccount = generalLedgerAccountResolver.getOrCreateSubAccount(parentAccount, subAccountReference)
       }
     }
-  }
 
-  fun verifyOrRepairAccount(accountReference: String): AccountResponse {
-    var account = generalLedgerAccountResolver.getOrCreateParentAccount(accountReference)
-
-    if (account.subAccounts.size != 3) {
-      this.createPrisonerSubAccounts(accountReference)
-      account = generalLedgerAccountResolver.getOrCreateParentAccount(accountReference)
-    }
-
-    return account
+    return parentAccount
   }
 }

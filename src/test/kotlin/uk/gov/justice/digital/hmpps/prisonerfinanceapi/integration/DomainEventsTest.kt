@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration
 
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -618,7 +619,7 @@ class DomainEventsTest : SqsIntegrationTestBase() {
     }
 
     @Test
-    fun `When receiving an account created event, it should check the parent account and create any missing subAccount`() {
+    fun `When receiving an account created event, it should check the parent account and create any missing subAccounts`() {
       val prisonNumber = "A1234AA"
 
       val parentAccountId = UUID.randomUUID()
@@ -656,7 +657,7 @@ class DomainEventsTest : SqsIntegrationTestBase() {
         hmppsQueueService = hmppsQueueService,
       )
 
-      generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts*")))
+      generalLedgerApi.verify(1, getRequestedFor(urlEqualTo("/accounts?reference=$prisonNumber")))
       generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/accounts/$parentAccountId/sub-accounts")))
     }
 
@@ -695,8 +696,8 @@ class DomainEventsTest : SqsIntegrationTestBase() {
         hmppsQueueService = hmppsQueueService,
       )
 
-      generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts*")))
-      generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/accounts*")))
+      generalLedgerApi.verify(1, getRequestedFor(urlEqualTo("/accounts?reference=$prisonNumber")))
+      generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/accounts")))
 
       generalLedgerApi.verify(3, postRequestedFor(urlPathMatching("/accounts/$parentAccountId/sub-accounts")))
     }
