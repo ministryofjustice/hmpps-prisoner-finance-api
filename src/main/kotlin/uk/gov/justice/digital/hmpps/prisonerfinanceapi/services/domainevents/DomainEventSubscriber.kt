@@ -11,6 +11,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.CprPe
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.Event
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsDomainEvent
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsMergeEvent
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.OffenderInsertedEvent
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
@@ -44,6 +45,11 @@ class DomainEventSubscriber(
         }
         PRISON_RECORD_CREATED -> {
           createAPrisonerAccount(event)
+        }
+        // at present, PRISON_RECORD_CREATED does not exist in prod
+        // this can be removed when that changes
+        OFFENDER_INSERTED -> {
+          createAPrisonerAccountWithLegacyEvent(event)
         }
         else -> {
           log.warn("Ignored unexpected event type: ${domainEvent.eventType}")
@@ -124,11 +130,21 @@ class DomainEventSubscriber(
     accountService.getOrCreatePrisonerAccountStructure(prisonNumber)
   }
 
+  private fun createAPrisonerAccountWithLegacyEvent(event: Event) {
+    val offenderInserted = objectMapper.readValue(event.message, OffenderInsertedEvent::class.java)
+    log.info("Received Offender Inserted event: $offenderInserted")
+
+    val prisonNumber = offenderInserted.offenderIdDisplay
+
+    accountService.getOrCreatePrisonerAccountStructure(prisonNumber)
+  }
+
   companion object {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
     // These must be configured in the application YAML subscribeFilter
     const val PRISON_RECORD_CREATED = "core-person-record.prison.record.created"
     const val PRISONER_ACCOUNT_MERGED = "prison-offender-events.prisoner.merged"
+    const val OFFENDER_INSERTED = "OFFENDER-INSERTED"
   }
 }

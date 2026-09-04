@@ -61,3 +61,15 @@ data class AdditionalInformation(
   @JsonProperty("reason")
   val reason: String? = null,
 )
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class OffenderInsertedEvent(
+  @JsonProperty("eventType")
+  override val eventType: String,
+  @JsonProperty("eventDateTime")
+  val eventDateTime: String,
+  @JsonProperty("offenderId")
+  val offenderId: String,
+  @JsonProperty(value = "offenderIdDisplay")
+  val offenderIdDisplay: String,
+) : HmppsDomainEvent(eventType)
