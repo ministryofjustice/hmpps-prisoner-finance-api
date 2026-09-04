@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Gene
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.AdditionalInformation
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.CprPersonCreated
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsMergeEvent
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.OffenderInsertedEvent
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.PersonIdentifier
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.PersonReference
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
@@ -21,6 +22,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Post
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.domainevents.DomainEventSubscriber
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.domainevents.DomainEventSubscriber.Companion.OFFENDER_INSERTED
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.domainevents.DomainEventSubscriber.Companion.PRISONER_ACCOUNT_MERGED
 import java.time.Instant
 import java.util.UUID
@@ -67,6 +69,30 @@ class DomainEventsTest : SqsIntegrationTestBase() {
           ),
         )
         .build(),
+    )
+  }
+
+  open fun publishOffenderInsertedEvent(prisonNumber: String) {
+    domainEventsTopicSnsClient.publish(
+      PublishRequest.builder()
+        .topicArn(domainEventsTopicArn)
+        .message(
+          jsonString(
+            OffenderInsertedEvent(
+              eventType = "OFFENDER-INSERTED",
+              eventDateTime = "2026-09-04T10:59:47",
+              offenderId = "2123456",
+              offenderIdDisplay = prisonNumber,
+            ),
+          ),
+        ).messageAttributes(
+          mapOf(
+            "eventType" to
+              MessageAttributeValue.builder()
+                .dataType("String")
+                .stringValue(OFFENDER_INSERTED).build(),
+          ),
+        ).build(),
     )
   }
 
@@ -532,6 +558,172 @@ class DomainEventsTest : SqsIntegrationTestBase() {
       generalLedgerApi.verify(2, getRequestedFor(urlPathMatching("/accounts*")))
       generalLedgerApi.verify(3, getRequestedFor(urlPathMatching("/sub-accounts/[^/]+/balance")))
       generalLedgerApi.verify(3, postRequestedFor(urlPathMatching("/transactions")))
+    }
+  }
+
+  @Nested
+  inner class OffenderInsertedEventTest {
+    @Test
+    fun `When receiving an offender inserted event, it should check if the parent account and subAccounts already exist in GL`() {
+      val prisonNumber = "A1234AA"
+      val parentAccountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = prisonNumber,
+        returnAccountId = parentAccountId,
+        subAccounts = listOf(
+          SubAccountResponse(
+            id = UUID.randomUUID(),
+            reference = "CASH",
+            parentAccountId = parentAccountId,
+            createdBy = "test",
+            createdAt = Instant.now(),
+          ),
+          SubAccountResponse(
+            id = UUID.randomUUID(),
+            reference = "SAVINGS",
+            parentAccountId = parentAccountId,
+            createdBy = "test",
+            createdAt = Instant.now(),
+          ),
+          SubAccountResponse(
+            id = UUID.randomUUID(),
+            reference = "SPENDS",
+            parentAccountId = parentAccountId,
+            createdBy = "test",
+            createdAt = Instant.now(),
+          ),
+        ),
+      )
+
+      publishOffenderInsertedEvent(prisonNumber)
+
+      waitUntilEmpty(
+        hmppsQueueService = hmppsQueueService,
+      )
+
+      generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts*")))
+    }
+
+    @Test
+    fun `When receiving an offender inserted event, it should check the parent account and create all subAccounts`() {
+      val prisonNumber = "A1234AA"
+
+      val parentAccountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = prisonNumber,
+        returnAccountId = parentAccountId,
+      )
+
+      generalLedgerApi.stubCreateSubAccount(
+        parentId = parentAccountId,
+        reference = "CASH",
+        returnUuid = UUID.randomUUID().toString(),
+      )
+      generalLedgerApi.stubCreateSubAccount(
+        parentId = parentAccountId,
+        reference = "SPENDS",
+        returnUuid = UUID.randomUUID().toString(),
+      )
+      generalLedgerApi.stubCreateSubAccount(
+        parentId = parentAccountId,
+        reference = "SAVINGS",
+        returnUuid = UUID.randomUUID().toString(),
+      )
+
+      publishOffenderInsertedEvent(prisonNumber)
+
+      waitUntilEmpty(
+        hmppsQueueService = hmppsQueueService,
+      )
+
+      generalLedgerApi.verify(1, getRequestedFor(urlPathMatching("/accounts*")))
+      generalLedgerApi.verify(3, postRequestedFor(urlPathMatching("/accounts/$parentAccountId/sub-accounts")))
+    }
+
+    @Test
+    fun `When receiving an offender inserted event, it should check the parent account and create any missing subAccounts`() {
+      val prisonNumber = "A1234AA"
+
+      val parentAccountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(
+        accountRef = prisonNumber,
+        returnAccountId = parentAccountId,
+        subAccounts = listOf(
+          SubAccountResponse(
+            id = UUID.randomUUID(),
+            reference = "CASH",
+            parentAccountId = parentAccountId,
+            createdBy = "test",
+            createdAt = Instant.now(),
+          ),
+          SubAccountResponse(
+            id = UUID.randomUUID(),
+            reference = "SPENDS",
+            parentAccountId = parentAccountId,
+            createdBy = "test",
+            createdAt = Instant.now(),
+          ),
+        ),
+      )
+
+      generalLedgerApi.stubCreateSubAccount(
+        parentId = parentAccountId,
+        reference = "SAVINGS",
+        returnUuid = UUID.randomUUID().toString(),
+      )
+
+      publishOffenderInsertedEvent(prisonNumber)
+
+      waitUntilEmpty(
+        hmppsQueueService = hmppsQueueService,
+      )
+
+      generalLedgerApi.verify(1, getRequestedFor(urlEqualTo("/accounts?reference=$prisonNumber")))
+      generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/accounts/$parentAccountId/sub-accounts")))
+    }
+
+    @Test
+    fun `When receiving an offender inserted event, it should check the parent account and create the parent account and all subAccounts`() {
+      val prisonNumber = "A1234AA"
+
+      val parentAccountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccountReturningAnEmptyList(accountRef = prisonNumber)
+
+      generalLedgerApi.stubCreateAccount(
+        reference = prisonNumber,
+        returnUuid = parentAccountId,
+      )
+
+      generalLedgerApi.stubCreateSubAccount(
+        parentId = parentAccountId,
+        reference = "CASH",
+        returnUuid = UUID.randomUUID().toString(),
+      )
+      generalLedgerApi.stubCreateSubAccount(
+        parentId = parentAccountId,
+        reference = "SPENDS",
+        returnUuid = UUID.randomUUID().toString(),
+      )
+      generalLedgerApi.stubCreateSubAccount(
+        parentId = parentAccountId,
+        reference = "SAVINGS",
+        returnUuid = UUID.randomUUID().toString(),
+      )
+
+      publishOffenderInsertedEvent(prisonNumber)
+
+      waitUntilEmpty(
+        hmppsQueueService = hmppsQueueService,
+      )
+
+      generalLedgerApi.verify(1, getRequestedFor(urlEqualTo("/accounts?reference=$prisonNumber")))
+      generalLedgerApi.verify(1, postRequestedFor(urlPathMatching("/accounts")))
+
+      generalLedgerApi.verify(3, postRequestedFor(urlPathMatching("/accounts/$parentAccountId/sub-accounts")))
     }
   }
 
