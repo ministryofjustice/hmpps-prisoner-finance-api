@@ -13,6 +13,16 @@ plugins {
   id("jacoco")
 }
 
+configurations {
+  named("ktlint") {
+    resolutionStrategy.eachDependency {
+      if (requested.group == "org.jetbrains.kotlin") {
+        useVersion("2.2.0")
+      }
+    }
+  }
+}
+
 configure<JacocoPluginExtension> {
   toolVersion = "0.8.14"
 }
