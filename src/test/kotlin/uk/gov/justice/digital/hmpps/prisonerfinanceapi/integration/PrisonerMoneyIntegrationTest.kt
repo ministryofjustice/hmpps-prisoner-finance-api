@@ -723,6 +723,70 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should pass description to GL if provided`() {
+      val accountRef = "A12345"
+      val accountId = UUID.randomUUID()
+
+      generalLedgerApi.stubGetAccountListWithAccount(accountRef, accountId)
+
+      val parentAccountPrisoner = serviceTestHelpers.createParentAccountResponse(
+        reference = accountRef,
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val parentAccountPrison = serviceTestHelpers.createParentAccountResponse(
+        reference = "LEI",
+        StatementEntryAccountResponse.Type.PRISON,
+      )
+
+      val subAccountCashPrisoner = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrisoner, "CASH")
+      val subAccountPrison = serviceTestHelpers.createSubAccountWithParentResponse(parentAccountPrison, "CANT")
+      val descriptionSearch = "Some description"
+      val expectedDescription = "Test $descriptionSearch Test"
+
+      val statementPageContents = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCashPrisoner,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          description = expectedDescription,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountPrison,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
+          ),
+        ),
+      )
+
+      val page = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 5, pageSize = 20, totalElements = 81, totalPages = 5, isLastPage = true)
+      generalLedgerApi.stubGetStatementEntriesPage(accountId, page)
+
+      val response = webTestClient.get()
+        .uri("/prisoners/$accountRef/money/transactions?description=$descriptionSearch")
+        .headers(setAuthorisation(roles = listOf(ROLE_PRISONER_FINANCE__PROFILE__RO)))
+        .exchange()
+        .expectStatus().isOk()
+        .expectBody<PagedPrisonerTransactionResponse>().returnResult().responseBody!!
+
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts/$accountId/statement"))
+          .withQueryParam("pageSize", equalTo("25"))
+          .withQueryParam("pageNumber", equalTo("1"))
+          .withQueryParam("description", equalTo(descriptionSearch)),
+      )
+      generalLedgerApi.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/accounts"))
+          .withQueryParam("reference", matching(accountRef)),
+      )
+
+      assertThat(response.content[0].description).isEqualTo(expectedDescription)
+    }
+
+    @Test
     fun `should default subaccount to null when it is not provided`() {
       val accountRef = "A12345"
       val accountId = UUID.randomUUID()

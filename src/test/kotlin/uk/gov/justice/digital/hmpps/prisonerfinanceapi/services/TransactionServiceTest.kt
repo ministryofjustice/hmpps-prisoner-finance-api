@@ -220,6 +220,56 @@ class TransactionServiceTest {
         .extracting("status")
         .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
     }
+
+    @Test
+    fun `should return transactions with description filter`() {
+      val prisonerId = UUID.randomUUID()
+      val expectedDescription = "MARS BAR"
+
+      val parentAccount = serviceTestHelpers.createParentAccountResponse(
+        reference = "A1234BC",
+        StatementEntryAccountResponse.Type.PRISONER,
+      )
+
+      val subAccountCash = serviceTestHelpers.createSubAccountWithParentResponse(parentAccount, "CASH")
+      val subAccountSavings = serviceTestHelpers.createSubAccountWithParentResponse(parentAccount, "SAVINGS")
+
+      val statementPageContents = listOf(
+        serviceTestHelpers.createStatementEntryResponse(
+          subAccount = subAccountCash,
+          postingType = StatementEntryResponse.PostingType.CR,
+          amount = 2L,
+          description = expectedDescription,
+          statementOppositePosting = listOf(
+            serviceTestHelpers.createStatementEntryOppositePostingResponse(
+              subAccountSavings,
+              2L,
+              StatementEntryOppositePostingsResponse.Type.DR,
+            ),
+          ),
+        ),
+      )
+      val statementPage = PagedResponseStatementEntryResponse(content = statementPageContents, pageNumber = 1, pageSize = 25, totalElements = 2, totalPages = 1, isLastPage = true)
+
+      whenever(
+        generalLedgerApiClient.getStatementForAccountId(
+          accountId = prisonerId,
+          startDate = null,
+          endDate = null,
+          credit = true,
+          debit = true,
+          pageNumber = 1,
+          pageSize = 25,
+          subAccountId = null,
+          description = expectedDescription,
+        ),
+      ).thenReturn(statementPage)
+
+      val responseContent = transactionService.getPrisonerTransactionsByAccountId(prisonerId, null, null, credit = true, debit = true, pageNumber = 1, pageSize = 25, subAccountId = null, description = expectedDescription).content
+
+      assertThat(responseContent).hasSize(1)
+      assertThat(responseContent[0].description).isEqualTo(expectedDescription)
+    }
   }
 
   @Nested

@@ -19,11 +19,12 @@ class ServiceTestHelpers {
     postingType: StatementEntryResponse.PostingType,
     amount: Long,
     statementOppositePosting: List<StatementEntryOppositePostingsResponse>,
+    description: String = "test description",
   ): StatementEntryResponse = StatementEntryResponse(
     transactionId = UUID.randomUUID(),
     postingCreatedAt = Instant.now(),
     transactionTimestamp = Instant.now(),
-    description = "test description",
+    description = description,
     oppositePostings = statementOppositePosting,
     amount = amount,
     postingType = postingType,
