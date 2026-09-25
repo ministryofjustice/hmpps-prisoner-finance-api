@@ -119,6 +119,7 @@ class PrisonerMoneyController(
     @RequestParam(required = false) credit: Boolean = false,
     @RequestParam(required = false) debit: Boolean = false,
     @RequestParam(required = false) subAccountReference: String?,
+    @RequestParam(required = false) description: String?,
   ): ResponseEntity<PagedPrisonerTransactionResponse> {
     val account = accountService.getAccountByReference(prisonNumber)
     if (account == null) throw CustomException(status = HttpStatus.NOT_FOUND, message = "Account not found")
@@ -138,6 +139,7 @@ class PrisonerMoneyController(
       pageNumber = pageNumber,
       pageSize = pageSize,
       subAccountId = subAccountId,
+      description = description,
     )
 
     return ResponseEntity.ok(transactions)

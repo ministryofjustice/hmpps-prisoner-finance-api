@@ -153,6 +153,7 @@ class GeneralLedgerApiMockServer :
     startDate: String = "",
     endDate: String = "",
     subAccountId: String = "",
+    description: String = "",
   ) {
     stubFor(
       get(
@@ -171,6 +172,11 @@ class GeneralLedgerApiMockServer :
         .apply {
           if (subAccountId.isNotBlank()) {
             withQueryParam("subAccountId", equalTo(subAccountId))
+          }
+        }
+        .apply {
+          if (description.isNotBlank()) {
+            withQueryParam("description", equalTo(description))
           }
         }
         .willReturn(
