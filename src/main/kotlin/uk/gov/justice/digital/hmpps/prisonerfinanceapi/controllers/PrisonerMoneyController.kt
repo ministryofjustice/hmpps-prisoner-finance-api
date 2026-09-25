@@ -56,6 +56,7 @@ class PrisonerMoneyController(
       Parameter(name = "credit", description = "Filter statements using the PostingType CR"),
       Parameter(name = "debit", description = "Filter statements using the PostingType DR"),
       Parameter(name = "subAccountReference", description = "Filter statements using the sub account reference"),
+      Parameter(name = "description", description = "Filter statements using the description term"),
     ],
   )
   @ApiResponses(
