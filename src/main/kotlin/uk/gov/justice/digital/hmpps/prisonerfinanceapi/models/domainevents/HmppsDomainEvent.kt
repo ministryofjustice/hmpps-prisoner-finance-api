@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import java.util.UUID
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 open class HmppsDomainEvent(
@@ -42,6 +43,9 @@ data class PersonIdentifier(
 data class Event(
   @JsonProperty("Message")
   val message: String,
+
+  @JsonProperty("MessageId")
+  val messageId: UUID,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

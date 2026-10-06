@@ -8,6 +8,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.domainevents.DomainEventSubscriber
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.mockLogger
+import java.util.UUID
 
 fun makePersonCreatedEvent(): String {
   val eventType = "core-person-record.prison.record.created"
@@ -90,7 +91,8 @@ class DomainEventSubscriberTest {
     val eventType = "wrong-event-type"
     val otherEventType = """
       {
-      "Message": "{\"eventType\": \"$eventType\"}"
+      "Message": "{\"eventType\": \"$eventType\"}",
+      "MessageId": "${UUID.randomUUID()}"
       }
     """.trimIndent()
 
