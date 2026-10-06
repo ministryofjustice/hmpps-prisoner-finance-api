@@ -43,14 +43,17 @@ class DomainEventSubscriber(
         PRISONER_ACCOUNT_MERGED -> {
           mergeAPrisonerAccount(event)
         }
+
         PRISON_RECORD_CREATED -> {
           createAPrisonerAccount(event)
         }
+
         // at present, PRISON_RECORD_CREATED does not exist in prod
         // this can be removed when that changes
         OFFENDER_INSERTED -> {
           createAPrisonerAccountWithLegacyEvent(event)
         }
+
         else -> {
           log.warn("Ignored unexpected event type: ${domainEvent.eventType}")
         }
@@ -112,7 +115,7 @@ class DomainEventSubscriber(
           legacyTransactionId = null,
         )
 
-        transactionService.postTransaction(UUID.randomUUID(), adjustmentTxn)
+        transactionService.postTransaction(event.messageId, adjustmentTxn)
       }
     }
   }
