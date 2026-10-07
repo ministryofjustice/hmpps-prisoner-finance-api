@@ -4,7 +4,7 @@ hmpps-auth:
 prisoner-finance-api:
   url: http://localhost:8084
   client:
-    id: hmpps-prisoner-finance-general-ledger-api
+    id: hmpps-prisoner-finance-api
     secret: clientsecret
 
 springdoc:
