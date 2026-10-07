@@ -1,7 +1,7 @@
 hmpps-auth:
   url: "http://localhost:8090/auth"
 
-general-ledger-api:
+prisoner-finance-api:
   url: http://localhost:8084
   client:
     id: hmpps-prisoner-finance-general-ledger-api
