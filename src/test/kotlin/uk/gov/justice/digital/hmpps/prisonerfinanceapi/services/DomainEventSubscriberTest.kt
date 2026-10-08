@@ -1,11 +1,15 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
+import org.mockito.Spy
 import org.mockito.junit.jupiter.MockitoExtension
+import org.openapitools.client.infrastructure.Serializer.jacksonObjectMapper
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.domainevents.DomainEventSubscriber
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.helpers.mockLogger
 import java.util.UUID
@@ -33,6 +37,7 @@ fun makePersonCreatedEvent(): String {
     {
         "Type": "Notification",
         "MessageId": "5b90ee7d-67bc-5959-a4d8-b7d420180853",
+        "Timestamp": "2021-09-01T09:18:28.725Z",
         "Message":"$payload",
         "Timestamp": "2021-09-01T09:18:28.725Z",
         "MessageAttributes": {
@@ -49,6 +54,12 @@ fun makePersonCreatedEvent(): String {
 class DomainEventSubscriberTest {
   @Mock
   private lateinit var accountService: AccountService
+
+  @Mock
+  private lateinit var mergeService: MergeService
+
+  @Spy
+  private var objectMapper: ObjectMapper = jacksonObjectMapper().findAndRegisterModules()
 
   @InjectMocks
   private lateinit var domainEventSubscriber: DomainEventSubscriber
@@ -92,7 +103,8 @@ class DomainEventSubscriberTest {
     val otherEventType = """
       {
       "Message": "{\"eventType\": \"$eventType\"}",
-      "MessageId": "${UUID.randomUUID()}"
+      "MessageId": "${UUID.randomUUID()}",
+      "Timestamp": "2021-09-01T09:18:28.725Z"
       }
     """.trimIndent()
 
