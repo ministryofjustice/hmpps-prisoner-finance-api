@@ -6,32 +6,20 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.health.GeneralLedgerApiHealthPing
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.CprPersonCreated
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.Event
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsDomainEvent
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsMergeEvent
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.OffenderInsertedEvent
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.AccountService
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.TransactionService
-import java.time.Instant
-import java.util.UUID
-import kotlin.math.abs
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.services.MergeService
 
 @Service
 class DomainEventSubscriber(
   @Autowired private val accountService: AccountService,
+  @Autowired private val mergeService: MergeService,
+  @Autowired private val objectMapper: ObjectMapper,
 ) {
-
-  @Autowired
-  private lateinit var transactionService: TransactionService
-
-  @Autowired
-  private lateinit var generalLedgerApi: GeneralLedgerApiHealthPing
-  private val objectMapper = ObjectMapper()
-
   @SqsListener("domainevents", factory = "hmppsQueueContainerFactoryProxy")
   fun handleEvents(requestJson: String?) {
     try {
@@ -66,58 +54,8 @@ class DomainEventSubscriber(
 
   private fun mergeAPrisonerAccount(event: Event) {
     val prisonerMerged = objectMapper.readValue(event.message, HmppsMergeEvent::class.java)
-
     log.info("Received prisoner merged event: $prisonerMerged")
-
-    val accountToKeep = accountService.getOrCreatePrisonerAccountStructure(prisonerMerged.additionalInformation.nomsNumber)
-    val accountToRemove = accountService.getOrCreatePrisonerAccountStructure(prisonerMerged.additionalInformation.removedNomsNumber)
-
-    val accountTypes = listOf("CASH", "SAVINGS", "SPENDS")
-
-    val accountIdsToRemoveAndToKeep: List<Pair<UUID, UUID>> = accountTypes.map { accountType ->
-      val subAccountToRemove = accountToRemove.subAccounts.find { it.reference == accountType }!!.id
-      val subAccountToKeep = accountToKeep.subAccounts.find { it.reference == accountType }!!.id
-      Pair(subAccountToRemove, subAccountToKeep)
-    }
-
-    accountIdsToRemoveAndToKeep.forEach { (subAccountToRemove, subAccountToKeep) ->
-
-      val subAccountFinalBalance = accountService.getSubAccountBalance(subAccountToRemove).amount
-
-      if (subAccountFinalBalance != 0L) {
-        val adjustmentDescription = "ADJ - MERGED FROM ${prisonerMerged.additionalInformation.removedNomsNumber} TO ${prisonerMerged.additionalInformation.nomsNumber}"
-
-        val absBalance = abs(subAccountFinalBalance)
-
-        val debitingAccount = if (subAccountFinalBalance > 0) subAccountToRemove else subAccountToKeep
-        val creditingAccount = if (subAccountFinalBalance > 0) subAccountToKeep else subAccountToRemove
-
-        val adjustmentTxn = CreateTransactionRequest(
-          reference = "",
-          description = adjustmentDescription,
-          timestamp = Instant.now(),
-          amount = absBalance,
-          entrySequence = 1,
-          postings = listOf(
-            CreatePostingRequest(
-              subAccountId = debitingAccount,
-              type = CreatePostingRequest.Type.DR,
-              amount = absBalance,
-              entrySequence = 1,
-            ),
-            CreatePostingRequest(
-              subAccountId = creditingAccount,
-              type = CreatePostingRequest.Type.CR,
-              amount = absBalance,
-              entrySequence = 2,
-            ),
-          ),
-          legacyTransactionId = null,
-        )
-
-        transactionService.postTransaction(event.messageId, adjustmentTxn)
-      }
-    }
+    mergeService.mergeAPrisonerAccount(prisonerMerged, event.messageId, event.timestamp)
   }
 
   private fun createAPrisonerAccount(event: Event) {

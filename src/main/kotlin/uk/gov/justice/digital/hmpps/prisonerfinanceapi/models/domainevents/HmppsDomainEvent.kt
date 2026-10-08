@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import java.time.Instant
 import java.util.UUID
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -46,6 +47,9 @@ data class Event(
 
   @JsonProperty("MessageId")
   val messageId: UUID,
+
+  @JsonProperty("Timestamp")
+  val timestamp: Instant,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

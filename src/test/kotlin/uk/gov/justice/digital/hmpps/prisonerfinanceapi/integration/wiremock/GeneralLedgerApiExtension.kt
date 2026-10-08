@@ -24,6 +24,7 @@ import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.GeneralLedgerApiExtension.Companion.generalLedgerApi
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
@@ -343,12 +344,32 @@ class GeneralLedgerApiMockServer :
     )
   }
 
-  fun stubPostTransactionForRequest(request: CreateTransactionRequest, payload: TransactionResponse) {
+  fun stubPostTransactionForRequest(
+    description: String,
+    amount: Long,
+    postings: List<CreatePostingRequest>,
+    timestamp: Instant? = null,
+    reference: String? = null,
+    entrySequence: Long,
+    payload: TransactionResponse,
+  ) {
+    val request = CreateTransactionRequest(
+      reference = reference ?: "",
+      description = description,
+      timestamp = timestamp ?: Instant.now(),
+      amount = amount,
+      entrySequence = entrySequence,
+      postings = postings,
+    )
+
     val expectedNode = mapper.valueToTree<ObjectNode>(request)
-    expectedNode.remove("timestamp")
 
-    val expectedJson = mapper.writeValueAsString(expectedNode)
+    val modifiedNode = expectedNode.deepCopy().apply {
+      if (reference == null) remove("reference")
+      if (timestamp == null) remove("timestamp")
+    }
 
+    val expectedJson = mapper.writeValueAsString(modifiedNode)
     generalLedgerApi.stubFor(
       post("/transactions").withRequestBody(
         equalToJson(expectedJson, false, true),

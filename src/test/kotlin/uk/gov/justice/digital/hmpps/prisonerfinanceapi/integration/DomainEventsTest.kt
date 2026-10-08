@@ -17,7 +17,6 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.Offen
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.PersonIdentifier
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.PersonReference
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
@@ -206,25 +205,21 @@ class DomainEventsTest : SqsIntegrationTestBase() {
         val adjustmentDescription = "ADJ - MERGED FROM $fakeAccountPrisonNumber TO $realAccountPrisonNumber"
 
         generalLedgerApi.stubPostTransactionForRequest(
-          request = CreateTransactionRequest(
-            reference = "",
-            description = adjustmentDescription,
-            timestamp = Instant.now(),
-            amount = balance,
-            entrySequence = 1,
-            postings = listOf(
-              CreatePostingRequest(
-                subAccountId = fakeSubAccountUUID,
-                type = CreatePostingRequest.Type.DR,
-                amount = balance,
-                entrySequence = 1,
-              ),
-              CreatePostingRequest(
-                subAccountId = realSubAccountUUID,
-                type = CreatePostingRequest.Type.CR,
-                amount = balance,
-                entrySequence = 2,
-              ),
+          description = adjustmentDescription,
+          amount = balance,
+          entrySequence = 1,
+          postings = listOf(
+            CreatePostingRequest(
+              subAccountId = fakeSubAccountUUID,
+              type = CreatePostingRequest.Type.DR,
+              amount = balance,
+              entrySequence = 1,
+            ),
+            CreatePostingRequest(
+              subAccountId = realSubAccountUUID,
+              type = CreatePostingRequest.Type.CR,
+              amount = balance,
+              entrySequence = 2,
             ),
           ),
           payload = TransactionResponse(
@@ -350,25 +345,22 @@ class DomainEventsTest : SqsIntegrationTestBase() {
         val adjustmentDescription = "ADJ - MERGED FROM $fakeAccountPrisonNumber TO $realAccountPrisonNumber"
 
         generalLedgerApi.stubPostTransactionForRequest(
-          request = CreateTransactionRequest(
-            reference = "",
-            description = adjustmentDescription,
-            timestamp = Instant.now(),
-            amount = balance,
-            entrySequence = 1,
-            postings = listOf(
-              CreatePostingRequest(
-                subAccountId = fakeSubAccountUUID,
-                type = CreatePostingRequest.Type.DR,
-                amount = balance,
-                entrySequence = 1,
-              ),
-              CreatePostingRequest(
-                subAccountId = realSubAccountUUID,
-                type = CreatePostingRequest.Type.CR,
-                amount = balance,
-                entrySequence = 2,
-              ),
+
+          description = adjustmentDescription,
+          amount = balance,
+          entrySequence = 1,
+          postings = listOf(
+            CreatePostingRequest(
+              subAccountId = fakeSubAccountUUID,
+              type = CreatePostingRequest.Type.DR,
+              amount = balance,
+              entrySequence = 1,
+            ),
+            CreatePostingRequest(
+              subAccountId = realSubAccountUUID,
+              type = CreatePostingRequest.Type.CR,
+              amount = balance,
+              entrySequence = 2,
             ),
           ),
           payload = TransactionResponse(
@@ -496,28 +488,25 @@ class DomainEventsTest : SqsIntegrationTestBase() {
 
         val adjustmentDescription = "ADJ - MERGED FROM $fakeAccountPrisonNumber TO $realAccountPrisonNumber"
 
-        generalLedgerApi.stubPostTransactionForRequest(
-          request = CreateTransactionRequest(
-            reference = "",
-            description = adjustmentDescription,
-            timestamp = Instant.now(),
+        val expectedPostingsReq = listOf(
+          CreatePostingRequest(
+            subAccountId = debitingAccount,
+            type = CreatePostingRequest.Type.DR,
             amount = absBalance,
             entrySequence = 1,
-            postings = listOf(
-              CreatePostingRequest(
-                subAccountId = debitingAccount,
-                type = CreatePostingRequest.Type.DR,
-                amount = absBalance,
-                entrySequence = 1,
-              ),
-              CreatePostingRequest(
-                subAccountId = creditingAccount,
-                type = CreatePostingRequest.Type.CR,
-                amount = absBalance,
-                entrySequence = 2,
-              ),
-            ),
           ),
+          CreatePostingRequest(
+            subAccountId = creditingAccount,
+            type = CreatePostingRequest.Type.CR,
+            amount = absBalance,
+            entrySequence = 2,
+          ),
+        )
+        generalLedgerApi.stubPostTransactionForRequest(
+          description = adjustmentDescription,
+          amount = absBalance,
+          entrySequence = 1,
+          postings = expectedPostingsReq,
           payload = TransactionResponse(
             id = UUID.randomUUID(),
             legacyTransactionId = null,
