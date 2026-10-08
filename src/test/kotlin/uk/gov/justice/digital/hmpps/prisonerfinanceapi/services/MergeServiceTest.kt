@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubA
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
 import java.time.Instant
 import java.util.UUID
+import kotlin.math.abs
 
 @ExtendWith(MockitoExtension::class)
 class MergeServiceTest {
@@ -59,6 +60,8 @@ class MergeServiceTest {
 
     val accountToKeepParentAccountId = UUID.randomUUID()
     val subAccountCashToKeepAccountId = UUID.randomUUID()
+    val subAccountSpendsToKeepAccountId = UUID.randomUUID()
+    val subAccountSavingsToKeepAccountId = UUID.randomUUID()
 
     val accountToRemoveParentAccountId = UUID.randomUUID()
     val subAccountCashToRemoveAccountId = UUID.randomUUID()
@@ -83,14 +86,14 @@ class MergeServiceTest {
               createdBy = "TEST",
             ),
             SubAccountResponse(
-              id = UUID.randomUUID(),
+              id = subAccountSpendsToKeepAccountId,
               reference = "SPENDS",
               parentAccountId = accountToKeepParentAccountId,
               createdAt = Instant.now(),
               createdBy = "TEST",
             ),
             SubAccountResponse(
-              id = UUID.randomUUID(),
+              id = subAccountSavingsToKeepAccountId,
               reference = "SAVINGS",
               parentAccountId = accountToKeepParentAccountId,
               createdAt = Instant.now(),
@@ -144,6 +147,27 @@ class MergeServiceTest {
       )
     }
 
+    fun verifyTransaction(
+      transactionRequest: CreateTransactionRequest,
+      accountBalance: Long,
+      debitSubAccountId: UUID,
+      creditSubAccountId: UUID,
+    ) {
+      assertThat(transactionRequest.reference).isEqualTo(messageId.toString())
+      assertThat(transactionRequest.timestamp).isEqualTo(timestamp)
+      assertThat(transactionRequest.amount).isEqualTo(abs(accountBalance))
+      assertThat(transactionRequest.postings).hasSize(2)
+      assertThat(transactionRequest.description).isEqualTo("ADJ - MERGED FROM A1234BB TO A1234AA")
+
+      val debitPostingOne = transactionRequest.postings.first { it.type == CreatePostingRequest.Type.DR }
+      assertThat(debitPostingOne.subAccountId).isEqualTo(debitSubAccountId)
+      assertThat(debitPostingOne.entrySequence).isEqualTo(1)
+
+      val creditPostingOne = transactionRequest.postings.first { it.type == CreatePostingRequest.Type.CR }
+      assertThat(creditPostingOne.subAccountId).isEqualTo(creditSubAccountId)
+      assertThat(creditPostingOne.entrySequence).isEqualTo(2)
+    }
+
     @Test
     fun `Should not make any transactions if the account to remove has zero balances`() {
       mockBalance(subAccountCashToRemoveAccountId, 0)
@@ -157,6 +181,59 @@ class MergeServiceTest {
       )
 
       verify(transactionService, never()).postTransaction(any(), any())
+    }
+
+    @Test
+    fun `Should make a transactions for each subAccount, pass the reference as messageId and the timestamp as the message timestamp`() {
+      val cashBalance = 10L
+      val savingsBalance = 11L
+      val spendsBalance = -3L
+
+      mockBalance(subAccountCashToRemoveAccountId, cashBalance)
+      mockBalance(subAccountSavingsToRemoveAccountId, savingsBalance)
+      mockBalance(subAccountSpendsToRemoveAccountId, spendsBalance)
+
+      val transactionCaptor = argumentCaptor<CreateTransactionRequest>()
+      whenever(
+        transactionService.postTransaction(
+          idempotencyKey = any(),
+          createTransactionRequest = transactionCaptor.capture(),
+        ),
+      ).thenReturn(mock())
+
+      mergeService.mergeAPrisonerAccount(
+        prisonerMergeEvent = mergeEvent,
+        messageId = messageId,
+        timestamp = timestamp,
+      )
+
+      verify(transactionService, times(3)).postTransaction(any(), any())
+
+      val requests = transactionCaptor.allValues
+      assertThat(requests).hasSize(3)
+
+      val cashRequest = requests.first { it.amount == abs(cashBalance) }
+      val spendsRequest = requests.first { it.amount == abs(spendsBalance) }
+      val savingsRequest = requests.first { it.amount == abs(savingsBalance) }
+
+      verifyTransaction(
+        transactionRequest = cashRequest,
+        accountBalance = cashBalance,
+        debitSubAccountId = subAccountCashToRemoveAccountId,
+        creditSubAccountId = subAccountCashToKeepAccountId,
+      )
+      verifyTransaction(
+        transactionRequest = savingsRequest,
+        accountBalance = savingsBalance,
+        debitSubAccountId = subAccountSavingsToRemoveAccountId,
+        creditSubAccountId = subAccountSavingsToKeepAccountId,
+      )
+      verifyTransaction(
+        transactionRequest = spendsRequest,
+        accountBalance = spendsBalance,
+        debitSubAccountId = subAccountSpendsToKeepAccountId,
+        creditSubAccountId = subAccountSpendsToRemoveAccountId,
+      )
     }
 
     @Test
@@ -182,19 +259,13 @@ class MergeServiceTest {
       verify(transactionService, times(1)).postTransaction(any(), any())
 
       val transactionRequest = transactionCaptor.firstValue
-      assertThat(transactionRequest.reference).isEqualTo(messageId.toString())
-      assertThat(transactionRequest.timestamp).isEqualTo(timestamp)
-      assertThat(transactionRequest.amount).isEqualTo(10)
-      assertThat(transactionRequest.postings).hasSize(2)
-      assertThat(transactionRequest.description).isEqualTo("ADJ - MERGED FROM A1234BB TO A1234AA")
 
-      val debitPosting = transactionRequest.postings.first { it.type == CreatePostingRequest.Type.DR }
-      assertThat(debitPosting.subAccountId).isEqualTo(subAccountCashToKeepAccountId)
-      assertThat(debitPosting.entrySequence).isEqualTo(1)
-
-      val creditPosting = transactionRequest.postings.first { it.type == CreatePostingRequest.Type.CR }
-      assertThat(creditPosting.subAccountId).isEqualTo(subAccountCashToRemoveAccountId)
-      assertThat(creditPosting.entrySequence).isEqualTo(2)
+      verifyTransaction(
+        transactionRequest = transactionRequest,
+        accountBalance = 10,
+        debitSubAccountId = subAccountCashToKeepAccountId,
+        creditSubAccountId = subAccountCashToRemoveAccountId,
+      )
     }
 
     @Test
@@ -220,19 +291,13 @@ class MergeServiceTest {
       verify(transactionService, times(1)).postTransaction(any(), any())
 
       val transactionRequest = transactionCaptor.firstValue
-      assertThat(transactionRequest.reference).isEqualTo(messageId.toString())
-      assertThat(transactionRequest.timestamp).isEqualTo(timestamp)
-      assertThat(transactionRequest.amount).isEqualTo(15)
-      assertThat(transactionRequest.postings).hasSize(2)
-      assertThat(transactionRequest.description).isEqualTo("ADJ - MERGED FROM A1234BB TO A1234AA")
 
-      val debitPosting = transactionRequest.postings.first { it.type == CreatePostingRequest.Type.DR }
-      assertThat(debitPosting.subAccountId).isEqualTo(subAccountCashToRemoveAccountId)
-      assertThat(debitPosting.entrySequence).isEqualTo(1)
-
-      val creditPosting = transactionRequest.postings.first { it.type == CreatePostingRequest.Type.CR }
-      assertThat(creditPosting.subAccountId).isEqualTo(subAccountCashToKeepAccountId)
-      assertThat(creditPosting.entrySequence).isEqualTo(2)
+      verifyTransaction(
+        transactionRequest = transactionRequest,
+        accountBalance = 15,
+        debitSubAccountId = subAccountCashToRemoveAccountId,
+        creditSubAccountId = subAccountCashToKeepAccountId,
+      )
     }
   }
 }

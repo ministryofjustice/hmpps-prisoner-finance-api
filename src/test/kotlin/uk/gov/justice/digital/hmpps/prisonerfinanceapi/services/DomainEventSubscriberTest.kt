@@ -37,7 +37,6 @@ fun makePersonCreatedEvent(): String {
     {
         "Type": "Notification",
         "MessageId": "5b90ee7d-67bc-5959-a4d8-b7d420180853",
-        "Timestamp": "2021-09-01T09:18:28.725Z",
         "Message":"$payload",
         "Timestamp": "2021-09-01T09:18:28.725Z",
         "MessageAttributes": {
