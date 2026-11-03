@@ -19,7 +19,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Crea
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
@@ -93,7 +93,7 @@ class TransactionServiceTest {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountSavings,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -105,7 +105,7 @@ class TransactionServiceTest {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountCash,
               2L,
-              StatementEntryOppositePostingsResponse.Type.CR,
+              StatementEntryOppositePostingResponse.Type.CR,
             ),
           ),
         ),
@@ -170,7 +170,7 @@ class TransactionServiceTest {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -244,7 +244,7 @@ class TransactionServiceTest {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountSavings,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
