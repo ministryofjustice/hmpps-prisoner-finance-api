@@ -21,7 +21,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.integration.wiremock.Hmpp
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PagedResponseStatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountBalanceResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountResponse
@@ -291,7 +291,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -357,7 +357,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountSavings,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -369,7 +369,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountCash,
               2L,
-              StatementEntryOppositePostingsResponse.Type.CR,
+              StatementEntryOppositePostingResponse.Type.CR,
             ),
           ),
         ),
@@ -546,7 +546,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -618,7 +618,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -691,7 +691,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -754,7 +754,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               2L,
-              StatementEntryOppositePostingsResponse.Type.DR,
+              StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -818,7 +818,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               amount = 2L,
-              type = StatementEntryOppositePostingsResponse.Type.DR,
+              type = StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -901,7 +901,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               amount = 2L,
-              type = StatementEntryOppositePostingsResponse.Type.DR,
+              type = StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),
@@ -985,7 +985,7 @@ class PrisonerMoneyIntegrationTest : IntegrationTestBase() {
             serviceTestHelpers.createStatementEntryOppositePostingResponse(
               subAccountPrison,
               amount = 2L,
-              type = StatementEntryOppositePostingsResponse.Type.DR,
+              type = StatementEntryOppositePostingResponse.Type.DR,
             ),
           ),
         ),

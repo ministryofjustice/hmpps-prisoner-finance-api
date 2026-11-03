@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiCl
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.exceptions.CustomException
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreatePostingRequest
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.CreateTransactionRequest
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.TransactionResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.request.CreateTransactionFormRequest
@@ -64,9 +64,8 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
         message = "Unexpected posting without an opposite posting",
         status = HttpStatus.INTERNAL_SERVER_ERROR,
       )
-    val oppositePostingParent = firstOppositePosting.subAccount.parentAccount
-    if (oppositePostingParent.type == StatementEntryAccountResponse.Type.PRISON) {
-      return oppositePostingParent.reference
+    if (firstOppositePosting.parentAccountType == StatementEntryOppositePostingResponse.ParentAccountType.PRISON) {
+      return firstOppositePosting.parentAccountReference
     } else {
       return ""
     }

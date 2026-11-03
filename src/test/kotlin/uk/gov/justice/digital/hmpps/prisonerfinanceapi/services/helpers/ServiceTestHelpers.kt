@@ -4,7 +4,7 @@ import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.Pare
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerPostingListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.PrisonerTransactionListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryAccountResponse
-import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingsResponse
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryOppositePostingResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.StatementEntryResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountListResponse
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.SubAccountWithParentResponse
@@ -18,7 +18,7 @@ class ServiceTestHelpers {
     subAccount: SubAccountWithParentResponse,
     postingType: StatementEntryResponse.PostingType,
     amount: Long,
-    statementOppositePosting: List<StatementEntryOppositePostingsResponse>,
+    statementOppositePosting: List<StatementEntryOppositePostingResponse>,
     description: String = "test description",
   ): StatementEntryResponse = StatementEntryResponse(
     transactionId = UUID.randomUUID(),
@@ -80,12 +80,19 @@ class ServiceTestHelpers {
     createdAt = Instant.now(),
   )
 
-  fun createStatementEntryOppositePostingResponse(subAccount: SubAccountWithParentResponse, amount: Long, type: StatementEntryOppositePostingsResponse.Type): StatementEntryOppositePostingsResponse = StatementEntryOppositePostingsResponse(
+  fun createStatementEntryOppositePostingResponse(
+    subAccount: SubAccountWithParentResponse,
+    amount: Long,
+    type: StatementEntryOppositePostingResponse.Type,
+    sourcePostingId: UUID = UUID.randomUUID(),
+  ): StatementEntryOppositePostingResponse = StatementEntryOppositePostingResponse(
     id = UUID.randomUUID(),
     createdBy = "Test User",
     createdAt = Instant.now(),
     type = type,
     amount = amount,
-    subAccount = subAccount,
+    sourcePostingId = sourcePostingId,
+    parentAccountReference = subAccount.parentAccount.reference,
+    parentAccountType = StatementEntryOppositePostingResponse.ParentAccountType.valueOf(subAccount.parentAccount.type.toString()),
   )
 }
