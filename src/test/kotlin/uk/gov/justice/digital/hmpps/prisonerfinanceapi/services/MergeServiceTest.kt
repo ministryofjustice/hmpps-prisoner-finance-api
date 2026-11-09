@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -145,8 +144,7 @@ class MergeServiceTest {
       whenever(mergeEventAuditRepository.save(mergeEventAuditCaptor.capture())).thenAnswer { it.arguments[0] }
     }
 
-    @AfterEach
-    fun afterEach() {
+    fun verifyAuditLogSaved() {
       val mergeEventAudit = mergeEventAuditCaptor.firstValue
       assertThat(mergeEventAudit.mergedPrisonNumber).isEqualTo(removeNomsNumber)
       assertThat(mergeEventAudit.survivingPrisonNumber).isEqualTo(keepNomsNumber)
@@ -198,6 +196,7 @@ class MergeServiceTest {
       )
 
       verify(transactionService, never()).postTransaction(any(), any())
+      verifyAuditLogSaved()
     }
 
     @Test
@@ -251,6 +250,7 @@ class MergeServiceTest {
         debitSubAccountId = subAccountSpendsToKeepAccountId,
         creditSubAccountId = subAccountSpendsToRemoveAccountId,
       )
+      verifyAuditLogSaved()
     }
 
     @Test
@@ -283,6 +283,7 @@ class MergeServiceTest {
         debitSubAccountId = subAccountCashToKeepAccountId,
         creditSubAccountId = subAccountCashToRemoveAccountId,
       )
+      verifyAuditLogSaved()
     }
 
     @Test
@@ -315,6 +316,7 @@ class MergeServiceTest {
         debitSubAccountId = subAccountCashToRemoveAccountId,
         creditSubAccountId = subAccountCashToKeepAccountId,
       )
+      verifyAuditLogSaved()
     }
   }
 }
