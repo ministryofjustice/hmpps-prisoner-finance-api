@@ -17,6 +17,7 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.jpa.entities.MergeEventAudit
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.jpa.repositories.MergeEventAuditRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.AdditionalInformation
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsMergeEvent
@@ -72,6 +73,7 @@ class MergeServiceTest {
     val subAccountCashToRemoveAccountId = UUID.randomUUID()
     val subAccountSpendsToRemoveAccountId = UUID.randomUUID()
     val subAccountSavingsToRemoveAccountId = UUID.randomUUID()
+    val mergeEventAuditCaptor = argumentCaptor<MergeEventAudit>()
 
     @BeforeEach
     fun setUp() {
@@ -140,11 +142,16 @@ class MergeServiceTest {
           ),
         ),
       )
+      whenever(mergeEventAuditRepository.save(mergeEventAuditCaptor.capture())).thenAnswer { it.arguments[0] }
     }
 
     @AfterEach
     fun afterEach() {
-      verify(mergeEventAuditRepository, times(1)).save(any())
+      val mergeEventAudit = mergeEventAuditCaptor.firstValue
+      assertThat(mergeEventAudit.mergedPrisonNumber).isEqualTo(removeNomsNumber)
+      assertThat(mergeEventAudit.survivingPrisonNumber).isEqualTo(keepNomsNumber)
+      assertThat(mergeEventAudit.messageReceivedAt).isEqualTo(timestamp)
+      assertThat(mergeEventAudit.messageId).isEqualTo(messageId)
     }
 
     private fun mockBalance(subAccountId: UUID, amount: Long) {

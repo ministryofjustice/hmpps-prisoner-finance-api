@@ -78,6 +78,7 @@ class MergeService(
         survivingPrisonNumber = keepNomsNumber,
         mergedPrisonNumber = removedNomsNumber,
         messageReceivedAt = timestamp,
+        messageId = messageId,
       ),
     )
   }

@@ -18,6 +18,9 @@ data class MergeEventAudit(
   @Column(name = "merge_event_audit_id", nullable = false, unique = true)
   val id: UUID = UUID.randomUUID(),
 
+  @Column(name = "message_id", nullable = false, unique = true)
+  val messageId: UUID,
+
   @Column(name = "surviving_prison_number")
   val survivingPrisonNumber: String,
 
