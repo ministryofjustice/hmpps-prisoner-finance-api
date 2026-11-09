@@ -16,6 +16,8 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.jpa.entities.MergeEventAudit
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.jpa.repositories.MergeEventAuditRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.AdditionalInformation
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsMergeEvent
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
@@ -35,6 +37,9 @@ class MergeServiceTest {
 
   @Mock
   lateinit var transactionService: TransactionService
+
+  @Mock
+  lateinit var mergeEventAuditRepository: MergeEventAuditRepository
 
   @Spy
   lateinit var idempotencyKeyService: GeneralLedgerIdempotencyService
@@ -67,6 +72,7 @@ class MergeServiceTest {
     val subAccountCashToRemoveAccountId = UUID.randomUUID()
     val subAccountSpendsToRemoveAccountId = UUID.randomUUID()
     val subAccountSavingsToRemoveAccountId = UUID.randomUUID()
+    val mergeEventAuditCaptor = argumentCaptor<MergeEventAudit>()
 
     @BeforeEach
     fun setUp() {
@@ -135,6 +141,15 @@ class MergeServiceTest {
           ),
         ),
       )
+      whenever(mergeEventAuditRepository.save(mergeEventAuditCaptor.capture())).thenAnswer { it.arguments[0] }
+    }
+
+    fun verifyAuditLogSaved() {
+      val mergeEventAudit = mergeEventAuditCaptor.firstValue
+      assertThat(mergeEventAudit.mergedPrisonNumber).isEqualTo(removeNomsNumber)
+      assertThat(mergeEventAudit.survivingPrisonNumber).isEqualTo(keepNomsNumber)
+      assertThat(mergeEventAudit.messageReceivedAt).isEqualTo(timestamp)
+      assertThat(mergeEventAudit.messageId).isEqualTo(messageId)
     }
 
     private fun mockBalance(subAccountId: UUID, amount: Long) {
@@ -181,6 +196,7 @@ class MergeServiceTest {
       )
 
       verify(transactionService, never()).postTransaction(any(), any())
+      verifyAuditLogSaved()
     }
 
     @Test
@@ -234,6 +250,7 @@ class MergeServiceTest {
         debitSubAccountId = subAccountSpendsToKeepAccountId,
         creditSubAccountId = subAccountSpendsToRemoveAccountId,
       )
+      verifyAuditLogSaved()
     }
 
     @Test
@@ -266,6 +283,7 @@ class MergeServiceTest {
         debitSubAccountId = subAccountCashToKeepAccountId,
         creditSubAccountId = subAccountCashToRemoveAccountId,
       )
+      verifyAuditLogSaved()
     }
 
     @Test
@@ -298,6 +316,7 @@ class MergeServiceTest {
         debitSubAccountId = subAccountCashToRemoveAccountId,
         creditSubAccountId = subAccountCashToKeepAccountId,
       )
+      verifyAuditLogSaved()
     }
   }
 }
