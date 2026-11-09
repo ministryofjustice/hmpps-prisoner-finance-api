@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.prisonerfinanceapi.services
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -16,6 +17,7 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import uk.gov.justice.digital.hmpps.prisonerfinanceapi.jpa.repositories.MergeEventAuditRepository
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.AdditionalInformation
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.domainevents.HmppsMergeEvent
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.models.generalledger.AccountResponse
@@ -35,6 +37,9 @@ class MergeServiceTest {
 
   @Mock
   lateinit var transactionService: TransactionService
+
+  @Mock
+  lateinit var mergeEventAuditRepository: MergeEventAuditRepository
 
   @Spy
   lateinit var idempotencyKeyService: GeneralLedgerIdempotencyService
@@ -135,6 +140,11 @@ class MergeServiceTest {
           ),
         ),
       )
+    }
+
+    @AfterEach
+    fun afterEach() {
+      verify(mergeEventAuditRepository, times(1)).save(any())
     }
 
     private fun mockBalance(subAccountId: UUID, amount: Long) {

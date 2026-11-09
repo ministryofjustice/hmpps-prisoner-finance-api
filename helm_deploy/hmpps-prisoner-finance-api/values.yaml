@@ -76,6 +76,12 @@ generic-service:
     domain-events-prisoner-finance-dlq:
       HMPPS_SQS_QUEUES_DOMAINEVENTS_DLQ_NAME: "sqs_queue_name"
 
+    prisoner-finance-api-rds-postgresql-instance-output:
+      DB_SERVER: "rds_instance_endpoint"
+      DB_NAME: "database_name"
+      DB_USER: "database_username"
+      DB_PASS: "database_password"
+
   allowlist:
     groups:
       - internal

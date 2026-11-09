@@ -1,6 +1,15 @@
 hmpps-auth:
   url: "http://localhost:8090/auth"
 
+spring:
+  application:
+    name: hmpps-prisoner-finance-api
+
+  datasource:
+    url: 'jdbc:postgresql://${DB_SERVER:localhost:5436}/${DB_NAME:prisoner-finance-api}?sslmode=prefer'
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
+
 prisoner-finance-api:
   url: http://localhost:8084
   client:
@@ -25,3 +34,6 @@ hmpps:
     topics:
       domainevents:
         arn: arn:aws:sns:eu-west-2:000000000000:11111111-2222-3333-4444-555555555555
+
+general-ledger-api:
+  url: http://localhost:8091

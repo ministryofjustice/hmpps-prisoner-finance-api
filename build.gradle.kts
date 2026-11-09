@@ -11,6 +11,7 @@ plugins {
   kotlin("plugin.spring") version "2.4.21"
   id("org.openapi.generator") version "7.26.0"
   id("jacoco")
+  kotlin("plugin.jpa") version "2.4.21"
 }
 
 configurations {
@@ -33,7 +34,14 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.1")
+  implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+  implementation("org.springframework.boot:spring-boot-starter-flyway")
+  implementation("org.postgresql:postgresql:42.7.13")
+  implementation("org.flywaydb:flyway-core")
+  implementation("org.flywaydb:flyway-database-postgresql")
 
+  testImplementation("org.testcontainers:postgresql:1.21.4")
+  testImplementation("org.springframework.boot:spring-boot-testcontainers")
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.0.3")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
@@ -41,6 +49,7 @@ dependencies {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("org.testcontainers:localstack:1.21.4")
+  implementation(kotlin("stdlib"))
 }
 
 kotlin {
@@ -275,4 +284,7 @@ tasks.register<JacocoReport>("combineJacocoReports") {
 
 tasks.named("check") {
   dependsOn("unitTest", "integrationTest", "combineJacocoReports")
+}
+repositories {
+  mavenCentral()
 }
