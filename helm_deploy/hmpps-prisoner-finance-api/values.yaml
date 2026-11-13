@@ -70,10 +70,10 @@ generic-service:
       PRISONER_FINANCE_API_CLIENT_ID: 'API_CLIENT_ID'
       PRISONER_FINANCE_API_CLIENT_SECRET: 'API_CLIENT_SECRET'
 
-    domain-events-prisoner-finance-queue:
+    domain-events-prisoner-finance-queue-pf-api:
       HMPPS_SQS_QUEUES_DOMAINEVENTS_QUEUE_NAME: "sqs_queue_name"
 
-    domain-events-prisoner-finance-dlq:
+    domain-events-prisoner-finance-dlq-pf-api:
       HMPPS_SQS_QUEUES_DOMAINEVENTS_DLQ_NAME: "sqs_queue_name"
 
     prisoner-finance-api-rds-postgresql-instance-output:
