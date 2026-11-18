@@ -11,18 +11,18 @@ generic-service:
     enabled: true
     timeout: 3590
     namespace_secrets:
-      pfi-api-rds-postgresql-instance-output:
+      prisoner-finance-api-rds-postgresql-instance-output:
         DB_HOST: "rds_instance_address"
         DB_SERVER: "rds_instance_endpoint"
         DB_NAME: "database_name"
         DB_USER: "database_username"
         DB_PASS: "database_password"
-      pfi-api-rds-postgresql-instance-output-preprod:
+      prisoner-finance-api-api-rds-postgresql-instance-output-preprod:
         DB_NAME_PREPROD: "database_name"
         DB_USER_PREPROD: "database_username"
         DB_PASS_PREPROD: "database_password"
         DB_HOST_PREPROD: "rds_instance_address"
-      pfi-api-restore-s3-bucket:
+      pf-api-restore-s3-bucket:
         BUCKET_NAME: "bucket_name"
   serviceAccountName: "hmpps-prisoner-finance-api"
 
