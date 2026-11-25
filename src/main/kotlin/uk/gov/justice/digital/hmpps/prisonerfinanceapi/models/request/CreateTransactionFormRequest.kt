@@ -7,4 +7,5 @@ class CreateTransactionFormRequest(
   val debitSubAccountId: UUID,
   val amount: Long,
   val description: String,
+  val idempotencyKey: UUID,
 )

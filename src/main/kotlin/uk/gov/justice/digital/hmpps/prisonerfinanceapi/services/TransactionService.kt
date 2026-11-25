@@ -80,7 +80,6 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
   }
 
   fun createTransaction(createTransactionFormRequest: CreateTransactionFormRequest): TransactionResponse? {
-    val idempotencyKey = UUID.randomUUID()
     val txReference = UUID.randomUUID().toString()
 
     val postings = listOf(
@@ -108,7 +107,7 @@ class TransactionService(@Autowired private val generalLedgerApiClient: GeneralL
 
     )
 
-    val createdTransaction = generalLedgerApiClient.postTransaction(idempotencyKey, createTransactionRequest)
+    val createdTransaction = generalLedgerApiClient.postTransaction(createTransactionFormRequest.idempotencyKey, createTransactionRequest)
 
     return createdTransaction
   }
