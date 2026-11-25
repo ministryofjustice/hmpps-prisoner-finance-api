@@ -8,8 +8,8 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.prisonerfinanceapi.client.GeneralLedgerApiClient
@@ -284,6 +284,7 @@ class TransactionServiceTest {
         debitSubAccountId = debitSubAccountId,
         amount = 2L,
         description = "description",
+        idempotencyKey = UUID.randomUUID(),
       )
 
       val postings = listOf(
@@ -335,7 +336,7 @@ class TransactionServiceTest {
 
       whenever(
         generalLedgerApiClient.postTransaction(
-          idempotencyKey = any(),
+          idempotencyKey = eq(createTransactionFormRequest.idempotencyKey),
           createTransactionRequest = argThat<CreateTransactionRequest> { request ->
 
             val referenceIsValidUUID = try {

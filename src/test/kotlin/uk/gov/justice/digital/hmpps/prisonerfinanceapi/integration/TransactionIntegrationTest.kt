@@ -23,7 +23,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
   @Nested
   inner class CreateTransaction {
 
-    fun stubPostTransaction(creditSubAccountId: UUID, debitSubAccountId: UUID, amount: Long, description: String): TransactionResponse {
+    fun stubPostTransaction(creditSubAccountId: UUID, debitSubAccountId: UUID, amount: Long, description: String, idempotencyKey: UUID): TransactionResponse {
       val transactionId = UUID.randomUUID()
 
       val payload = TransactionResponse(
@@ -55,7 +55,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      generalLedgerApi.stubPostTransaction(payload)
+      generalLedgerApi.stubPostTransaction(payload, idempotencyKey)
 
       return payload
     }
@@ -67,13 +67,14 @@ class TransactionIntegrationTest : IntegrationTestBase() {
       val amount = 5L
       val description = "TEST"
 
-      val stubbedTransactionResponse = stubPostTransaction(creditSubAccountId, debitSubAccountId, amount, description)
       val uiFormRequest = CreateTransactionFormRequest(
         creditSubAccountId = creditSubAccountId,
         debitSubAccountId = debitSubAccountId,
         amount = amount,
         description = description,
+        idempotencyKey = UUID.randomUUID(),
       )
+      val stubbedTransactionResponse = stubPostTransaction(creditSubAccountId, debitSubAccountId, amount, description, idempotencyKey = uiFormRequest.idempotencyKey)
 
       val responseBody = webTestClient.post()
         .uri("/transactions")
@@ -142,6 +143,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
         debitSubAccountId = debitSubAccountId,
         amount = amount,
         description = description,
+        idempotencyKey = UUID.randomUUID(),
       )
 
       webTestClient.post()
@@ -164,6 +166,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
         debitSubAccountId = debitSubAccountId,
         amount = amount,
         description = description,
+        idempotencyKey = UUID.randomUUID(),
       )
 
       generalLedgerApi.stubPostTransactionSubAccountIDNotFound()
@@ -188,6 +191,7 @@ class TransactionIntegrationTest : IntegrationTestBase() {
         debitSubAccountId = debitSubAccountId,
         amount = amount,
         description = description,
+        idempotencyKey = UUID.randomUUID(),
       )
 
       generalLedgerApi.stubAnyRequestThrows500()

@@ -329,12 +329,17 @@ class GeneralLedgerApiMockServer :
     )
   }
 
-  fun stubPostTransaction(payload: TransactionResponse) {
+  fun stubPostTransaction(payload: TransactionResponse, idempotencyKey: UUID? = null) {
     generalLedgerApi.stubFor(
       post("/transactions")
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
+            .apply {
+              if (idempotencyKey != null) {
+                withHeader("Idempotency-Key", idempotencyKey.toString())
+              }
+            }
             .withBody(
               mapper.writeValueAsString(
                 payload,
