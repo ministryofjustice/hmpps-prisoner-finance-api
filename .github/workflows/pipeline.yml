@@ -35,6 +35,17 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+
+  check_publish:
+    name: Check publish flag
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ github.ref == 'refs/heads/main' && (inputs.push || inputs.push == null) }}
+    steps:
+      - name: Set publish flag
+        run: echo "Publishing enabled ${{ github.ref == 'refs/heads/main' && (inputs.push || inputs.push == null) }}"
+
+
   helm_lint:
     strategy:
       matrix:
@@ -106,16 +117,53 @@ jobs:
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2
     needs:
       - gradle_verify
+      - check_publish
     with:
       docker_registry: 'ghcr.io'
       registry_org: 'ministryofjustice'
       additional_docker_tag: ${{ inputs.additional_docker_tag }}
-      push: ${{ inputs.push || inputs.push == null }}
+      push: ${{ needs.check_publish.outputs.enabled == 'true' }}
       docker_multiplatform: false
       download_build_artifacts: true
-      generate_sbom: true
-      attach_sbom_to_registry: true
-      sign_image: true
+      generate_sbom: ${{ needs.check_publish.outputs.enabled == 'true' }}
+      attach_sbom_to_registry: ${{ needs.check_publish.outputs.enabled == 'true' }}
+      sign_image: ${{ needs.check_publish.outputs.enabled == 'true' }}
+
+  deploy_dashboard:
+    name: Deploy To Dev
+    runs-on: ubuntu-latest
+    if: needs.check_publish.outputs.enabled == 'true'
+    needs:
+      - check_publish
+    environment: dev
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Login to Azure
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
+        with:
+          client-id: ${{ secrets.AZ_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZ_TENANT_ID }}
+          subscription-id: ${{ secrets.AZ_SUBSCRIPION_ID }}
+          client-secret: ${{ secrets.AZ_CLIENT_SECRET }}
+
+      - name: Deploy_dashboard
+        uses: azure/cli@9eb25b8360668fb0ecbafa808d40e2197b2f5f52 # v3
+        with:
+          inlineScript: |
+            
+            # 1. Replace placeholders in the JSON file
+            sed -i "s/__AZ_SUBSCRIPTION_ID__/${{ secrets.AZ_SUBSCRIPION_ID }}/g" ./deploy/dashboards/dashboard-dev.json
+            sed -i "s/__DASHBOARD_RESOURCE_GROUP__/${{ vars.DASHBOARD_RESOURCE_GROUP }}/g" ./deploy/dashboards/dashboard-dev.json
+            sed -i "s/__DASHBOARD_RESOURCE_NAME__/${{ vars.DASHBOARD_RESOURCE_NAME }}/g" ./deploy/dashboards/dashboard-dev.json
+            
+            az deployment group create \
+            --subscription "${{ secrets.AZ_SUBSCRIPION_ID }}" \
+            --resource-group "dashboards" \
+            --template-file "./deploy/dashboards/prisoner-finance-template-arm.json" \
+            --parameters serializedData="$(jq -c . ./deploy/dashboards/dashboard-dev.json)"
+
   deploy_dev:
     name: Deploy to the development environment
     needs:
