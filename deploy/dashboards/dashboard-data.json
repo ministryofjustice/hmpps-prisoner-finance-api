@@ -1,0 +1,602 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 11,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": true,
+            "mode": "raw",
+            "query": "pageViews\n| where timestamp >= $__timeFrom and timestamp < $__timeTo\n| where cloud_RoleName == \"hmpps-prisoner-finance\"\n| where isnotempty(user_Id)\n| summarize TotalUniqueUsers = dcount(user_Id)",
+            "resources": [
+              "/subscriptions/__AZ_SUBSCRIPTION_ID__/resourceGroups/__DASHBOARD_RESOURCE_GROUP__/providers/Microsoft.Insights/components/__DASHBOARD_RESOURCE_NAME__"
+            ],
+            "resultFormat": "table",
+            "timeColumn": "timestamp"
+          },
+          "azureMonitor": {
+            "allowedTimeGrainsMs": [],
+            "dimensionFilters": [],
+            "metricNamespace": "microsoft.insights/components",
+            "region": "northeurope",
+            "resources": [
+              {
+                "metricNamespace": "Microsoft.Insights/components",
+                "region": "northeurope",
+                "resourceGroup": "__DASHBOARD_RESOURCE_GROUP__",
+                "resourceName": "__DASHBOARD_RESOURCE_NAME__",
+                "subscription": "__AZ_SUBSCRIPTION_ID__"
+              }
+            ],
+            "timeGrain": "auto"
+          },
+          "azureTraces": {
+            "resultFormat": "table",
+            "traceTypes": [
+              "availabilityResults",
+              "dependencies",
+              "customEvents",
+              "exceptions",
+              "pageViews",
+              "requests",
+              "traces"
+            ]
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "azuremonitor"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A",
+          "subscription": "__AZ_SUBSCRIPTION_ID__"
+        }
+      ],
+      "title": "Unique users",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "#ad46ff",
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 11,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "firstNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": true,
+            "mode": "raw",
+            "query": "pageViews\n| where timestamp >= $__timeFrom and timestamp < $__timeTo\n| where cloud_RoleName == \"hmpps-prisoner-finance\"\n| where isnotempty(user_Id)\n| summarize visits = count()",
+            "resources": [
+              "/subscriptions/__AZ_SUBSCRIPTION_ID__/resourceGroups/__DASHBOARD_RESOURCE_GROUP__/providers/Microsoft.Insights/components/__DASHBOARD_RESOURCE_NAME__"
+            ],
+            "resultFormat": "table",
+            "timeColumn": "timestamp"
+          },
+          "azureMonitor": {
+            "allowedTimeGrainsMs": [],
+            "dimensionFilters": [],
+            "metricNamespace": "microsoft.insights/components",
+            "region": "northeurope",
+            "resources": [
+              {
+                "metricNamespace": "Microsoft.Insights/components",
+                "region": "northeurope",
+                "resourceGroup": "__DASHBOARD_RESOURCE_GROUP__",
+                "resourceName": "__DASHBOARD_RESOURCE_NAME__",
+                "subscription": "__AZ_SUBSCRIPTION_ID__"
+              }
+            ],
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "azuremonitor"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A",
+          "subscription": "__AZ_SUBSCRIPTION_ID__"
+        }
+      ],
+      "title": "Total Visits",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 11,
+        "x": 0,
+        "y": 3
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": true,
+            "mode": "raw",
+            "query": "pageViews\n| where timestamp >= $__timeFrom and timestamp < $__timeTo\n| where cloud_RoleName == \"hmpps-prisoner-finance\"\n| summarize visits = count() by bin(timestamp, 5m)\n| order by timestamp asc",
+            "resources": [
+              "/subscriptions/__AZ_SUBSCRIPTION_ID__/resourceGroups/__DASHBOARD_RESOURCE_GROUP__/providers/Microsoft.Insights/components/__DASHBOARD_RESOURCE_NAME__"
+            ],
+            "resultFormat": "time_series",
+            "timeColumn": "timestamp"
+          },
+          "azureMonitor": {
+            "allowedTimeGrainsMs": [],
+            "dimensionFilters": [],
+            "metricNamespace": "microsoft.insights/components",
+            "region": "northeurope",
+            "resources": [
+              {
+                "metricNamespace": "Microsoft.Insights/components",
+                "region": "northeurope",
+                "resourceGroup": "__DASHBOARD_RESOURCE_GROUP__",
+                "resourceName": "__DASHBOARD_RESOURCE_NAME__",
+                "subscription": "__AZ_SUBSCRIPTION_ID__"
+              }
+            ],
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "azuremonitor"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A",
+          "subscription": "__AZ_SUBSCRIPTION_ID__"
+        }
+      ],
+      "title": "Visits over time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 11,
+        "y": 3
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": true,
+            "mode": "raw",
+            "query": "pageViews\n| where timestamp >= $__timeFrom and timestamp < $__timeTo\n| where cloud_RoleName == \"hmpps-prisoner-finance\"\n| summarize visits = dcount(user_Id) by bin(timestamp, 30m)\n| order by timestamp asc",
+            "resources": [
+              "/subscriptions/__AZ_SUBSCRIPTION_ID__/resourceGroups/__DASHBOARD_RESOURCE_GROUP__/providers/Microsoft.Insights/components/__DASHBOARD_RESOURCE_NAME__"
+            ],
+            "resultFormat": "time_series",
+            "timeColumn": "timestamp"
+          },
+          "azureMonitor": {
+            "allowedTimeGrainsMs": [],
+            "dimensionFilters": [],
+            "metricNamespace": "microsoft.insights/components",
+            "region": "northeurope",
+            "resources": [
+              {
+                "metricNamespace": "Microsoft.Insights/components",
+                "region": "northeurope",
+                "resourceGroup": "__DASHBOARD_RESOURCE_GROUP__",
+                "resourceName": "__DASHBOARD_RESOURCE_NAME__",
+                "subscription": "__AZ_SUBSCRIPTION_ID__"
+              }
+            ],
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "azuremonitor"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A",
+          "subscription": "__AZ_SUBSCRIPTION_ID__"
+        }
+      ],
+      "title": "Distinct Visits by user over time (30 min interval)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "azure-monitor"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 100,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 23,
+        "x": 0,
+        "y": 10
+      },
+      "id": 3,
+      "options": {
+        "barRadius": 0.05,
+        "barWidth": 0.95,
+        "colorByField": "clean_path",
+        "fullHighlight": false,
+        "groupWidth": 0.8,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "vertical",
+        "showValue": "always",
+        "stacking": "normal",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "desc"
+        },
+        "xField": "clean_path",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": -100
+      },
+      "pluginVersion": "13.2.0",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": true,
+            "mode": "raw",
+            "query": "pageViews\n| where timestamp >= $__timeFrom and timestamp < $__timeTo\n| where cloud_RoleName == \"hmpps-prisoner-finance\"\n| extend clean_path = iff(isempty(tostring(parse_url(url).Path)), \"/\", tostring(parse_url(url).Path))\n| extend normalized_path = replace_regex(clean_path, @\"/prisoner/[^/]+\", \"/prisoner/*\")\n| summarize visits = count() by clean_path = normalized_path\n",
+            "resources": [
+              "/subscriptions/__AZ_SUBSCRIPTION_ID__/resourceGroups/__DASHBOARD_RESOURCE_GROUP__/providers/Microsoft.Insights/components/__DASHBOARD_RESOURCE_NAME__"
+            ],
+            "resultFormat": "table",
+            "timeColumn": "timestamp"
+          },
+          "azureMonitor": {
+            "allowedTimeGrainsMs": [],
+            "dimensionFilters": [],
+            "metricNamespace": "microsoft.insights/components",
+            "region": "northeurope",
+            "resources": [
+              {
+                "metricNamespace": "Microsoft.Insights/components",
+                "region": "northeurope",
+                "resourceGroup": "__DASHBOARD_RESOURCE_GROUP__",
+                "resourceName": "__DASHBOARD_RESOURCE_NAME__",
+                "subscription": "__AZ_SUBSCRIPTION_ID__"
+              }
+            ],
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "azuremonitor"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A",
+          "subscription": "__AZ_SUBSCRIPTION_ID__"
+        }
+      ],
+      "title": "Visits by Page",
+      "type": "barchart"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Prisoner-Finance-Dev-pipeline",
+  "uid": "subscriptions~c27cfedb-f5e9-45e6-9642-0fad1a5c94e7~resourceGroups~dashboards~providers~Microsoft.Dashboard~dashboards~Prisoner-Finance-Dev55092408",
+  "version": 7,
+  "weekStart": "",
+  "id": 1
+}

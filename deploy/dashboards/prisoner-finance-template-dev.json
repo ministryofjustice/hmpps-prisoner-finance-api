@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "dashboardName": {
+      "type": "string",
+      "defaultValue": "Prisoner-Finance-Dev-pipeline",
+      "metadata": {
+        "description": "Name of the Azure Monitor Dashboard with Grafana resource."
+      }
+    },
+    "resourceTags": {
+      "type": "object",
+      "defaultValue": {
+        "sourceDashboardId": "/subscriptions/c27cfedb-f5e9-45e6-9642-0fad1a5c94e7/resourceGroups/dashboards/providers/Microsoft.Dashboard/dashboards/Prisoner-Finance-Dev"
+      }
+    },
+    "serializedData": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Dashboard/dashboards",
+      "apiVersion": "2025-09-01-preview",
+      "name": "[parameters('dashboardName')]",
+      "location": "[resourceGroup().location]",
+      "tags": "[parameters('resourceTags')]",
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Dashboard/dashboards/dashboardDefinitions",
+      "apiVersion": "2025-09-01-preview",
+      "name": "[format('{0}/default', parameters('dashboardName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Dashboard/dashboards', parameters('dashboardName'))]"
+      ],
+      "properties": {
+        "serializedData": "[parameters('serializedData')]"
+      }
+    }
+  ],
+  "outputs": {
+    "dashboardResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Dashboard/dashboards', parameters('dashboardName'))]"
+    },
+    "dashboardDefinitionResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Dashboard/dashboards/dashboardDefinitions', parameters('dashboardName'), 'default')]"
+    }
+  }
+}
