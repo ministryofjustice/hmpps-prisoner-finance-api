@@ -66,7 +66,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.check-api.outputs.differences == 'true'
-        uses: peter-evans/create-pull-request@67f9e1be23d8e8265191f0c42c877a5f28be83ae # v6.0.0
+        uses: peter-evans/create-pull-request@b1ddad2c994a25fbc81a28b3ec0e368bb2021c50 # v6.0.0
         with:
           base: main
           commit-message: "chore: update general ledger openapi spec"
