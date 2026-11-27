@@ -14,7 +14,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, hmpps-github-actions-runner]
     steps:
       - name: Gen GH API token
-        uses: actions/create-github-app-token@064492a9a1762067169d50c792a7dc02bc3d1254 #v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         id: generate-token
         with:
           repositories: ${{ github.event.repository.name }}
